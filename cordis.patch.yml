@@ -1,0 +1,3 @@
+- insert:
+    - id: study-plugin
+      name: 'dsh-plugin-study'

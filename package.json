@@ -1,0 +1,93 @@
+{
+  "name": "dsh-plugin-study",
+  "version": "0.1.0",
+  "description": "STEM & technical guided-study plugin for DeepSeek Harness — diagnostic probes, 10 orthogonal scratchpad representations, controlled Matplotlib/SVG vector plotting, and a live right-sidebar blueprint drawer.",
+  "author": "crrisugi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crrisugi/dsh-plugin-study.git"
+  },
+  "homepage": "https://github.com/crrisugi/dsh-plugin-study#readme",
+  "bugs": {
+    "url": "https://github.com/crrisugi/dsh-plugin-study/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "study",
+    "stem",
+    "ai-tutor",
+    "guided-learning",
+    "svg"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": ">=0.1.7-alpha.1 <0.3.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-skill": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
+    "@deepseek-ai/schemastery": "3.19.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "~18.3.18",
+    "@types/react-dom": "~18.3.5",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.15.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "scripts": {
+    "clean": "node -e \"import('node:fs').then(fs => fs.rmSync('lib', { recursive: true, force: true }))\"",
+    "build:host": "tsc -p tsconfig.build.json",
+    "build:client": "tsdown",
+    "build": "pnpm run clean && pnpm run build:host && pnpm run build:client",
+    "typecheck": "tsc --noEmit",
+    "lint:assets": "node scripts/lint-assets.mjs",
+    "test": "vitest run",
+    "verify": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run lint:assets",
+    "prepublishOnly": "pnpm run verify"
+  }
+}

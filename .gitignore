@@ -1,0 +1,15 @@
+node_modules/
+lib/
+dist/
+coverage/
+**/local_config.json
+**/.venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
