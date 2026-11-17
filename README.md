@@ -23,10 +23,6 @@
 ## 安装与使用
 
 ```bash
-# 方式一：从 npm 安装（推荐）
-dsh plugin --profile web add dsh-plugin-study
-
-# 方式二：从 GitHub 源码克隆并本地构建安装
 git clone https://github.com/crrisugi/dsh-plugin-study.git
 cd dsh-plugin-study
 pnpm install && pnpm run build
