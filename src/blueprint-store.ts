@@ -56,6 +56,18 @@ export function resolveSafeRelativeDir(
   return { absDir, relPosix: rel.replace(/\\/g, '/') }
 }
 
+export function extractSvgRefs(markdown: string): string[] {
+  const svgRefs: string[] = []
+  const re = /!\[[^\]]*\]\((?:assets\/|\.\/assets\/)([a-zA-Z0-9_\u4e00-\u9fa5.-]+\.svg)\)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(markdown)) !== null) {
+    if (m[1] && isSafeSingleSegment(m[1]) && !svgRefs.includes(m[1])) {
+      svgRefs.push(m[1])
+    }
+  }
+  return svgRefs
+}
+
 function normalizeNotesDirInput(raw: string | undefined): string | undefined {
   if (!raw) return undefined
   let cleaned = raw.trim().replace(/\\/g, '/')
@@ -436,23 +448,118 @@ export class BlueprintStore {
     try {
       const md = await fs.readFile(cardPath, 'utf-8')
       const h1 = md.split(/\r?\n/).find((l) => l.startsWith('# '))
-      const svgRefs: string[] = []
-      const re = /!\[[^\]]*\]\((?:assets\/|\.\/assets\/)([a-zA-Z0-9_\u4e00-\u9fa5.-]+\.svg)\)/g
-      let m: RegExpExecArray | null
-      while ((m = re.exec(md)) !== null) {
-        if (m[1] && isSafeSingleSegment(m[1]) && !svgRefs.includes(m[1])) {
-          svgRefs.push(m[1])
-        }
-      }
+      const svgRefs = extractSvgRefs(md)
+      const inlineSvgs: Record<string, string> = {}
+      await Promise.all(
+        svgRefs.map(async (svgName) => {
+          try {
+            inlineSvgs[svgName] = await fs.readFile(path.join(topicDir, 'assets', svgName), 'utf-8')
+          } catch {
+            // Skip missing SVG on disk; card text remains readable
+          }
+        }),
+      )
       return {
         cardId: opts.archivedName.replace(/\.md$/i, ''),
         title: h1 ? h1.replace(/^#\s*/, '').trim() : opts.archivedName,
         markdown: md,
         svgRefs,
+        ...(Object.keys(inlineSvgs).length > 0 ? { inlineSvgs } : {}),
       }
     } catch {
       return null
     }
+  }
+
+  async validateSyncedNotes(opts: {
+    cwd: string
+    notesDir: string
+    cards: readonly BlueprintCardItem[]
+  }): Promise<string[]> {
+    const safe = resolveSafeRelativeDir(opts.cwd, opts.notesDir)
+    if (!safe) {
+      return [`notesDir "${opts.notesDir}" 不是合法的工作区相对子目录，未执行磁盘校验。`]
+    }
+
+    const warnings: string[] = []
+    let dirFiles: string[] = []
+    try {
+      dirFiles = await fs.readdir(safe.absDir)
+    } catch {
+      return [`目录 ${safe.relPosix} 尚未创建，无法核对蓝图与归档卡片。`]
+    }
+
+    const bpPath = path.join(safe.absDir, '00_伴学脉络蓝图.md')
+    try {
+      const rawBp = await fs.readFile(bpPath, 'utf-8')
+      const parsed = parseBlueprintMarkdown(rawBp, {
+        key: `ws:${safe.relPosix}`,
+        fallbackTopic: path.basename(safe.absDir),
+        archivedFiles: [],
+        svgAssets: [],
+        updatedAt: '',
+      })
+      if (parsed.cards.length === 0) {
+        warnings.push(`${safe.relPosix}/00_伴学脉络蓝图.md 未解析出有效卡片表格行（请检查“| 卡 01 | 主题 | 说明 |”格式）。`)
+      }
+    } catch {
+      warnings.push(`目录 ${safe.relPosix} 尚未写入 00_伴学脉络蓝图.md。`)
+    }
+
+    let diskSvgs = new Set<string>()
+    try {
+      const assetFiles = await fs.readdir(path.join(safe.absDir, 'assets'))
+      diskSvgs = new Set(assetFiles.filter((f) => f.toLowerCase().endsWith('.svg') && isSafeSingleSegment(f)))
+    } catch {
+      diskSvgs = new Set()
+    }
+
+    const archivedMdFiles = dirFiles.filter((f) => f.endsWith('.md') && f !== '00_伴学脉络蓝图.md' && isSafeSingleSegment(f))
+    const totalCard = archivedMdFiles.find((f) => f.startsWith('01_全篇脉络总卡'))
+    const checkedFiles = new Set<string>()
+
+    for (const card of opts.cards) {
+      if (card.status !== 'done') continue
+      const numMatch = /(\d+)/.exec(card.id)
+      const numPrefix = numMatch?.[1]?.padStart(2, '0')
+      const matchedFile = card.archivedName
+        ? archivedMdFiles.includes(card.archivedName)
+          ? card.archivedName
+          : undefined
+        : (numPrefix
+            ? archivedMdFiles.find((f) => f.startsWith(`卡${numPrefix}`) || f.startsWith(`卡 ${numPrefix}`))
+            : undefined) ?? totalCard
+
+      if (!matchedFile) {
+        warnings.push(`卡片 ${card.id} 已标为 done，但目录 ${safe.relPosix} 下未找到对应归档 .md 文件。`)
+        continue
+      }
+      if (checkedFiles.has(matchedFile)) continue
+      checkedFiles.add(matchedFile)
+
+      try {
+        const mdText = await fs.readFile(path.join(safe.absDir, matchedFile), 'utf-8')
+        const imgRe = /!\[[^\]]*\]\(([^)]+)\)/g
+        let imgMatch: RegExpExecArray | null
+        while ((imgMatch = imgRe.exec(mdText)) !== null) {
+          const rawTarget = (imgMatch[1] ?? '').trim().split(/\s+/)[0] ?? ''
+          if (!rawTarget || /^https?:\/\//i.test(rawTarget)) continue
+          const normalized = rawTarget.replace(/^\.\//, '')
+          if (normalized.startsWith('assets/') && normalized.toLowerCase().endsWith('.svg')) {
+            const svgName = normalized.slice('assets/'.length)
+            if (!isSafeSingleSegment(svgName) || !diskSvgs.has(svgName)) {
+              warnings.push(`${matchedFile} 引用了缺失矢量图 assets/${svgName}。`)
+            }
+          } else {
+            warnings.push(`${matchedFile} 图片路径 "${rawTarget}" 未遵循相对路径 assets/卡XX_图名.svg 约定。`)
+          }
+        }
+      } catch {
+        warnings.push(`无法读取已归档卡片 ${matchedFile}。`)
+      }
+    }
+
+    return warnings
   }
 
   async readSvgAsset(opts: {

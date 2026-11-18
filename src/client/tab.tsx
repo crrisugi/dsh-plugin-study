@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BlueprintCardItem, BlueprintView, CardDetailView } from '../contract.js'
 import { fetchArchivedCard, fetchStudyOverview, fetchSvgPreview } from './api.js'
+import { CardPreview } from './card-preview.js'
 import { sanitizeSvgForPreview } from './sanitize-svg.js'
 import { useCurrentSessionId } from './use-session.js'
 
@@ -34,6 +35,30 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
   const [error, setError] = useState<string | null>(null)
   const [cardDetail, setCardDetail] = useState<CardDetailView | null>(null)
   const [previewSvg, setPreviewSvg] = useState<{ name: string; html: string } | null>(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+
+  const handleCopyPrompt = async (key: string, text: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else if (typeof document !== 'undefined') {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        ta.remove()
+      }
+      setCopiedKey(key)
+      setTimeout(() => {
+        setCopiedKey((prev) => (prev === key ? null : prev))
+      }, 1500)
+    } catch {
+      setError(`复制“${text}”失败，请手动输入。`)
+    }
+  }
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -248,17 +273,37 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
                         前置判断：{card.probeReason}
                       </div>
                     ) : null}
-                    {card.archivedName ? (
-                      <div style={{ marginTop: '6px' }}>
-                        <button
-                          type="button"
-                          className="dsh-study-btn"
-                          onClick={() => void handleOpenCard(card.archivedName!)}
-                        >
-                          {cardDetail?.cardId === card.archivedName.replace(/\.md$/i, '')
-                            ? '收起笔记卡'
-                            : `查看 ${card.archivedName}`}
-                        </button>
+                    {card.status === 'active' || card.archivedName ? (
+                      <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {card.status === 'active' && activeBlueprint.depthMode !== '直觉速通' ? (
+                          <button
+                            type="button"
+                            className="dsh-study-btn dsh-study-btn-primary"
+                            onClick={() => void handleCopyPrompt(`${card.id}:archive`, '落盘')}
+                          >
+                            {copiedKey === `${card.id}:archive` ? '已复制「落盘」' : '复制「落盘」'}
+                          </button>
+                        ) : null}
+                        {card.status === 'active' ? (
+                          <button
+                            type="button"
+                            className="dsh-study-btn"
+                            onClick={() => void handleCopyPrompt(`${card.id}:next`, '继续')}
+                          >
+                            {copiedKey === `${card.id}:next` ? '已复制「继续」' : '复制「继续」'}
+                          </button>
+                        ) : null}
+                        {card.archivedName ? (
+                          <button
+                            type="button"
+                            className="dsh-study-btn"
+                            onClick={() => void handleOpenCard(card.archivedName!)}
+                          >
+                            {cardDetail?.cardId === card.archivedName.replace(/\.md$/i, '')
+                              ? '收起笔记卡'
+                              : `查看 ${card.archivedName}`}
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -279,7 +324,7 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
                   关闭
                 </button>
               </div>
-              <pre className="dsh-study-md-preview">{cardDetail.markdown}</pre>
+              <CardPreview detail={cardDetail} />
             </div>
           ) : null}
 

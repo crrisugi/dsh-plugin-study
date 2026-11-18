@@ -106,7 +106,7 @@ description: >-
 全文不用纯文本 ASCII 字符画，也不用原生 `Mermaid`。所有配图统一产出标准 `.svg` 矢量图：
 - **两类图分工**：
   - **曲线与谱图**：连续曲线、几何矢量、分布谱线与热力图，先列仅含 `3~4` 个特征点或代表格的小表，调用 `study_render_plot` 传入绘图代码：环境已预导入 `plot_helper as ph`，内置 `COLORS`、`BWR_CMAP`、`new_fig()`、`new_subplots(r,c)`、`new_3d_fig()`、`vec2d(ax,v,label)`、`vec3d_drop(ax,v,label)`、`heatmap(ax,data)`，脚本末尾将最终画布赋给变量 `fig` 即可自动导出瘦身 `.svg`；环境缺少 `uv` 时直接提示用户先安装 `uv`。未覆盖的新图型直接用返回的原生 `fig, ax` 配合 `Matplotlib / SciPy` 自由绘制。
-  - **流向与状态图**：代码分支、状态跳变、模块时序与张量 `Shape` 流向，直接调用 `study_render_plot` 的 `rawSvg` 参数或文件写入工具生成白底圆角 `<svg>` 文件，配浅色高亮、黑体字与带箭头连线。
+  - **流向与状态图**：代码分支、状态跳变、模块时序与张量 `Shape` 流向，直接调用 `study_render_plot` 的 `rawSvg` 参数或文件写入工具生成 `<svg>` 并在源码首行自带柔和浅底圆角 `<rect>`，配浅色高亮、黑体字与带箭头连线。
 - **图内原位直标**：曲线名、方向箭头与关键数值直接标在对应线条或箭头旁，少用角落孤立图例框。单图主色不超过 `3` 种，同卡多图同一量固定同色；图中正负号与字母跟正文算式一致，不在正文公式里写颜色代码。Matplotlib 图内标签禁用 `\mathcal`、`\mathscr`、`\mathbb` 等触发私有区缺字的花体命令，改用常规字母如 `V_I`、`V_II`。
 - **就近嵌入存盘**：
   1. 需落盘时将 `svgPath` 设为笔记目录如 `./学习笔记/<主题名>/assets/卡XX_图名.svg`，靶向直答与纯会话伴读省略 `svgPath` 交由插件存临时目录。

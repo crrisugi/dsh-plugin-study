@@ -48,6 +48,7 @@ export interface CardDetailView {
   readonly title: string
   readonly markdown: string
   readonly svgRefs: readonly string[]
+  readonly inlineSvgs?: Readonly<Record<string, string>> | undefined
 }
 
 export interface OverviewResponse {

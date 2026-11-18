@@ -12,9 +12,11 @@
   "bugs": {
     "url": "https://github.com/crrisugi/dsh-plugin-study/issues"
   },
+  "icon": "./assets/icon.svg",
   "type": "module",
   "engines": {
-    "node": ">=20.12.0"
+    "node": ">=20.12.0",
+    "dsh": ">=0.2.0"
   },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -26,17 +28,21 @@
     "./client": {
       "default": "./lib/client.js"
     },
+    "./icon": "./assets/icon.svg",
+    "./locale/*.json": "./locale/*.json",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "files": [
     "lib",
     "assets",
+    "locale",
     "cordis.patch.yml",
     "README.md",
     "LICENSE"
   ],
   "dsh": {
+    "manifestVersion": 1,
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
@@ -86,6 +92,7 @@
     "build": "pnpm run clean && pnpm run build:host && pnpm run build:client",
     "typecheck": "tsc --noEmit",
     "lint:assets": "node scripts/lint-assets.mjs",
+    "market:index": "node scripts/generate-market-entry.mjs",
     "test": "vitest run",
     "verify": "pnpm run typecheck && pnpm run build && pnpm run test && pnpm run lint:assets",
     "prepublishOnly": "pnpm run verify"

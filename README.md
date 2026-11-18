@@ -11,8 +11,8 @@
    - `study_read_reference`：从插件包内按需读取 10 份正交草稿纸表征规范，保持工具 Schema 静态不变以维持 DeepSeek KV Cache 命中率；
    - `study_render_plot`：在隔离临时沙箱调用内置 `plot_helper.py`（经 `uv run`）或清洗手写圆角 `<svg>`，导出瘦身 `.svg` 并返回标准 Markdown `![图注](路径)` 原位渲染（免除终端审批弹窗）。
 3. **Web UI 右侧栏「伴学脉络」抽屉（`./client`）**：
-   - 实时同步当前会话蓝图（由 `study_sync_blueprint` 推送，支持自定义工作区相对笔记目录 `notesDir`）并自动扫描 `./学习笔记/*/00_伴学脉络蓝图.md`；
-   - 支持卡片进度追踪、已归档笔记卡预览与 `.svg` 矢量图安全预览；在 TUI / Headless 模式下自动优雅降级，不影响主插件加载。
+   - 实时同步当前会话蓝图（由 `study_sync_blueprint` 推送，支持自定义工作区相对笔记目录 `notesDir` 并顺带执行磁盘断链自检）与自动扫描 `./学习笔记/*/00_伴学脉络蓝图.md`；
+   - 支持卡片进度追踪、快捷复制“落盘/继续”口令、归档卡分段与 `.svg` 图文同屏安全预览及深浅色主题自适应；在 TUI / Headless 模式下自动优雅降级，不影响主插件加载。
 
 ## 环境要求
 
@@ -34,11 +34,13 @@ dsh plugin --profile web add ./
 - 点击右侧栏「**伴学脉络**」标签页即可实时查看卡片路线、统一算例与进度；
 - 需要记录伴学失真反馈时输入 `/study-feedback` 生成脱敏诊断单。
 
-## 本地构建与验证
+## 本地构建、校验与市场索引
 
 ```bash
 pnpm install
 pnpm run verify
+# 导出符合 DSH Format 1 规范的 Discover 市场索引 JSON
+pnpm run market:index
 ```
 
 ## 开源许可

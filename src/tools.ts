@@ -330,21 +330,33 @@ export function createStudyTools(opts: {
         properties: {
           syncedCards: { type: 'number', required: true },
           activeCard: { type: 'string', required: true },
+          warnings: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '传入 notesDir 时顺带执行的磁盘断链与格式自检告警。',
+          },
         },
       },
-      render: (_args, value) => [
-        {
-          type: 'text',
-          text: `已同步伴学脉络至右侧栏（共 ${value.syncedCards} 张卡，当前焦点：${value.activeCard}）`,
-        },
-      ],
+      render: (_args, value) => {
+        const base = `已同步伴学脉络至右侧栏（共 ${value.syncedCards} 张卡，当前焦点：${value.activeCard}）`
+        const warnList = Array.isArray(value.warnings) ? value.warnings : []
+        const text =
+          warnList.length > 0
+            ? `${base}\n磁盘自检告警（请顺手核对修补）：\n- ${warnList.join('\n- ')}`
+            : base
+        return [{ type: 'text', text }]
+      },
     },
     execute: async (args, exec) => {
       const sessionId = sessionOf(exec)
       const wdSvc = opts.getWorkingDirectory?.()
+      let resolvedCwd = opts.store.getSessionCwd(sessionId)
       if (wdSvc) {
         const cwd = await wdSvc.ensure((exec as { agent?: unknown }).agent, exec.signal).catch(() => undefined)
-        if (cwd) opts.store.recordSessionCwd(sessionId, cwd)
+        if (cwd) {
+          resolvedCwd = cwd
+          opts.store.recordSessionCwd(sessionId, cwd)
+        }
       }
       const rawCards = (args.cards ?? []) as Array<{
         id: string
@@ -356,11 +368,12 @@ export function createStudyTools(opts: {
         probeReason?: string
         archivedName?: string
       }>
+      const notesDir = typeof args.notesDir === 'string' && args.notesDir.trim() ? args.notesDir.trim() : undefined
       const view = opts.store.syncSessionBlueprint({
         sessionId,
         topicTitle: String(args.topicTitle ?? ''),
         material: typeof args.material === 'string' ? args.material : undefined,
-        notesDir: typeof args.notesDir === 'string' ? args.notesDir : undefined,
+        notesDir,
         depthMode: String(args.depthMode ?? '标准推演'),
         coreProblem: String(args.coreProblem ?? ''),
         toyExampleRange: typeof args.toyExampleRange === 'string' ? args.toyExampleRange : undefined,
@@ -368,9 +381,18 @@ export function createStudyTools(opts: {
         currentCardId: typeof args.currentCardId === 'string' && args.currentCardId ? args.currentCardId : null,
         cards: rawCards,
       })
+      const warnings =
+        notesDir && resolvedCwd
+          ? await opts.store.validateSyncedNotes({
+              cwd: resolvedCwd,
+              notesDir,
+              cards: view.cards,
+            })
+          : []
       return {
         syncedCards: view.cards.length,
         activeCard: view.currentCardId ?? '已结课',
+        ...(warnings.length > 0 ? { warnings } : {}),
       }
     },
   })

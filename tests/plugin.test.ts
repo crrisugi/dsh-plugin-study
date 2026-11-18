@@ -125,6 +125,7 @@ describe('blueprint store & markdown parser', () => {
       })
       expect(cardFromSession?.title).toContain('初值分解')
       expect(cardFromWs?.svgRefs).toEqual(['卡01_相量.svg'])
+      expect(cardFromSession?.inlineSvgs?.['卡01_相量.svg']).toContain('<circle')
 
       const svg = await store.readSvgAsset({
         key: 'ws:notes/光学专题',
@@ -206,6 +207,72 @@ describe('study tools', () => {
           { agent: { id: 's1' } } as never,
         ),
       ).rejects.toThrow(/STIXNonUnicode/)
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('validates disk links during study_sync_blueprint and reports missing files without breaking sync', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-sync-validate-'))
+    try {
+      const notesDir = path.join(tmpDir, '学习笔记', '校验测试')
+      await fs.mkdir(path.join(notesDir, 'assets'), { recursive: true })
+      await fs.writeFile(
+        path.join(notesDir, '00_伴学脉络蓝图.md'),
+        '# 00｜学习脉络：测试\n| 卡 01 | 基础 | 算例 |',
+        'utf-8',
+      )
+      await fs.writeFile(
+        path.join(notesDir, '卡01_基础.md'),
+        '# 卡 01｜基础\n![缺失图](assets/卡01_缺失.svg)',
+        'utf-8',
+      )
+
+      const store = new BlueprintStore()
+      const tools = createStudyTools({
+        store,
+        getWorkingDirectory: () => ({ ensure: async () => tmpDir }),
+      })
+      const syncTool = tools.find((t) => t.name === 'study_sync_blueprint')!
+
+      const resWithWarn = (await syncTool.execute(
+        {
+          topicTitle: '校验测试',
+          notesDir: './学习笔记/校验测试',
+          depthMode: '标准推演',
+          coreProblem: '核对断链告警',
+          currentCardId: '',
+          cards: [
+            { id: '卡 01', title: '基础', summary: '算例', status: 'done', archivedName: '卡01_基础.md' },
+            { id: '卡 02', title: '进阶', summary: '漏档', status: 'done' },
+          ],
+        },
+        { agent: { id: 's-warn' } } as never,
+      )) as { syncedCards: number; warnings?: string[] }
+
+      expect(resWithWarn.syncedCards).toBe(2)
+      expect(resWithWarn.warnings).toHaveLength(2)
+      expect(resWithWarn.warnings?.join('\n')).toContain('assets/卡01_缺失.svg')
+      expect(resWithWarn.warnings?.join('\n')).toContain('卡 02')
+
+      await fs.writeFile(
+        path.join(notesDir, 'assets', '卡01_缺失.svg'),
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect width="4" height="4"/></svg>',
+        'utf-8',
+      )
+      const resClean = (await syncTool.execute(
+        {
+          topicTitle: '校验测试',
+          notesDir: './学习笔记/校验测试',
+          depthMode: '标准推演',
+          coreProblem: '核对断链告警',
+          currentCardId: '',
+          cards: [{ id: '卡 01', title: '基础', summary: '算例', status: 'done', archivedName: '卡01_基础.md' }],
+        },
+        { agent: { id: 's-warn' } } as never,
+      )) as { syncedCards: number; warnings?: string[] }
+
+      expect(resClean.warnings).toBeUndefined()
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true })
     }

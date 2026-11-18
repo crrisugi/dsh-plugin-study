@@ -63,9 +63,34 @@ for (const file of diskRefs) {
   }
 }
 
-for (const reqFile of [PLOT_HELPER, path.join(ASSETS_DIR, 'python', 'pyproject.toml'), path.join(ASSETS_DIR, 'python', 'uv.lock')]) {
+for (const reqFile of [
+  PLOT_HELPER,
+  path.join(ASSETS_DIR, 'python', 'pyproject.toml'),
+  path.join(ASSETS_DIR, 'python', 'uv.lock'),
+  path.join(ASSETS_DIR, 'icon.svg'),
+  path.join(ROOT, 'locale', 'en.json'),
+  path.join(ROOT, 'locale', 'zh.json'),
+]) {
   if (!fs.existsSync(reqFile)) {
-    errors.push(`缺失 Python 绘图资产: ${path.relative(ROOT, reqFile)}`)
+    errors.push(`缺失核心发版资产: ${path.relative(ROOT, reqFile)}`)
+  }
+}
+
+const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'))
+if (!pkgJson.engines?.dsh) {
+  errors.push('package.json 缺失 engines.dsh 声明（DSH Market Format 1 必填）')
+}
+const iconPath = path.join(ASSETS_DIR, 'icon.svg')
+if (fs.existsSync(iconPath) && fs.statSync(iconPath).size > 32 * 1024) {
+  errors.push('assets/icon.svg 体积超过 32 KiB 市场内联上限')
+}
+for (const lang of ['en', 'zh']) {
+  const locFile = path.join(ROOT, 'locale', `${lang}.json`)
+  if (fs.existsSync(locFile)) {
+    const loc = JSON.parse(fs.readFileSync(locFile, 'utf-8'))
+    if (!loc?.meta?.title) {
+      errors.push(`locale/${lang}.json 缺失 meta.title`)
+    }
   }
 }
 
