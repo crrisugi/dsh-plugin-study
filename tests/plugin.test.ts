@@ -17,6 +17,10 @@ describe('bundled skills', () => {
       expect(sk.invocation?.userInvocable).toBe(true)
       expect(sk.content.length).toBeGreaterThan(200)
     }
+    const fb = skills.find((s) => s.name === 'study-feedback')
+    expect(fb?.content).toContain('crrisugi/dsh-plugin-study')
+    expect(fb?.content).toContain('https://formspree.io/f/xrpqkvwl')
+    expect(fb?.content).not.toContain('crrisugi/study-skill')
   })
 
   it('parses frontmatter fields accurately', () => {

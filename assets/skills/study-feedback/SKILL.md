@@ -11,7 +11,7 @@ description: >-
 
 ## 诊断出单规程
 
-**终点**：已回扫当前伴学会话，定位失真根因并输出脱敏的五要素诊断代码块；工作区存在 `./study_feedback_ledger.md` 时同步去重追加，单轮简短收口。
+**终点**：已回扫当前伴学会话，定位失真根因并输出脱敏的五要素诊断代码块；工作区存在 `./study_feedback_ledger.md` 时同步去重追加，否则按 `gh` 探测结果与用户选择完成提交或保留代码块，单轮简短收口。
 
 - **回扫现场**：附有口头说明时结合上下文定位对应伴学环节；零打字调用时自动回扫当前会话，定位用户纠偏、喊停、嫌分卡过碎过粗、嫌摸底跑偏或反复追问才搞通的位置。空白会话且无伴学上下文时，如实告知无可提取记录，不编造条目。
 - **强制脱敏**：严禁摘抄用户的未发表公式参数、私有业务代码、文件路径或商业数据；一律抽象还原为通用表征形态、代码行数规模与数学耦合结构。
@@ -27,4 +27,8 @@ description: >-
 - **期望机制**：`<剥离单题细节后，期望规程或插件怎么改的一句话描述>`
 ```
 
-- **输出动作**：当前工作区根目录若已存在 `study_feedback_ledger.md`，自动去重追加至其 `## 待讨论分点` 小节末尾并简短告知；否则直接将上述诊断块包在 Markdown 代码块内输出，提示可复制提交至 `dsh-plugin-study` 仓库 GitHub Issues，并提醒公开提交前再次核对未含涉密代号或未发表专有参数。
+- **输出动作**：当前工作区根目录若已存在 `study_feedback_ledger.md`，自动去重追加至其 `## 待讨论分点` 小节末尾并简短告知；否则按以下四步收口：
+  1. **先出单**：将上述诊断块包在 Markdown 代码块内输出，提醒用户核对标题与正文未含涉密代号或未发表专有参数。
+  2. **只读探测**：静默执行 `gh auth status` 检查本机是否已安装并登录 GitHub CLI。
+  3. **引导选路**：优先调用当前宿主的交互提问工具（无控件时列编号选项）由用户选择；`gh` 可用时三选一：① 一键提交到 `crrisugi/dsh-plugin-study` GitHub Issue；② 推送到维护者邮箱；③ 仅保留当前代码块。`gh` 不可用时二选一：① 推送到维护者邮箱；② 仅保留代码块并附 `https://github.com/crrisugi/dsh-plugin-study/issues/new` 供手动提交。未经用户明确同意不得静默外发。
+  4. **通道执行**：选 GitHub Issue 时将诊断单写入系统临时文件后执行 `gh issue create -R crrisugi/dsh-plugin-study --title "<一句话问题标题>" --body-file "<临时文件路径>"`（禁拼 `--body` 多行字符串或 `cat << 'EOF'`），成功后删临时文件并返回 Issue 链接；选推送邮箱时通过 `node` 内置 `fetch`、`python` 标准库 `urllib.request` 或 `curl`（用临时文件传 JSON）向 `https://formspree.io/f/xrpqkvwl` 发送 `POST`，带 `Accept: application/json`、`Content-Type: application/json` 与常规 `User-Agent`，体为 `{"_subject": "[dsh-plugin-study] <一句话问题标题>", "source": "dsh-plugin-study", "title": "<一句话问题标题>", "report": "<五要素诊断单正文>"}`，校验 `"ok": true` 后告知结果；任一外发失败时保留代码块兜底。
