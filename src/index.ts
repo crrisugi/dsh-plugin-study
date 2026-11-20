@@ -3,6 +3,7 @@ import { registerStudyApi, type WebServerLike } from './api.js'
 import { BlueprintStore } from './blueprint-store.js'
 import { loadBundledSkills, registerBundledSkills, type SkillsServiceLike } from './skills.js'
 import { createStudyTools, registerStudyTools, type ToolsServiceLike, type WorkingDirectoryServiceLike } from './tools.js'
+import { UpdateChecker } from './update-checker.js'
 
 export const name = 'study-plugin'
 
@@ -27,6 +28,7 @@ function resolveSessionCwdFromHost(host: HostContextSlice, sessionId: string): s
 export async function apply(ctx: Context): Promise<void> {
   const host = ctx as unknown as HostContextSlice
   const store = new BlueprintStore()
+  const updateChecker = new UpdateChecker()
   const bundledSkills = await loadBundledSkills()
   const studyTools = createStudyTools({
     store,
@@ -53,10 +55,14 @@ export async function apply(ctx: Context): Promise<void> {
       registerStudyApi(svc as WebServerLike, {
         store,
         resolveSessionCwd: (sid) => resolveSessionCwdFromHost(host, sid),
+        getUpdateInfo: () => updateChecker.getStatus(),
       })
     if (target.effect) target.effect(registerFn)
     else registerFn()
   }
+
+  if (host.effect) host.effect(() => updateChecker.scheduleBackgroundCheck())
+  else updateChecker.scheduleBackgroundCheck()
 
   const existingSkills = host.get?.('skills')
   if (existingSkills) mountSkills(existingSkills, host)

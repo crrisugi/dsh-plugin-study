@@ -1,12 +1,15 @@
 import * as fs from 'node:fs/promises'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { registerStudyApi } from '../src/api.js'
 import { BlueprintStore, parseBlueprintMarkdown } from '../src/blueprint-store.js'
 import { REFERENCE_TOPICS } from '../src/contract.js'
 import { loadBundledSkills, parseSkillMarkdown } from '../src/skills.js'
 import { createStudyTools } from '../src/tools.js'
 import { isLoopbackHostname, isTrustedApiRequest } from '../src/trust-fence.js'
+import { extractTagFromLocation, isStrictlyNewer, UpdateChecker } from '../src/update-checker.js'
 
 describe('bundled skills', () => {
   it('loads study and study-feedback with modelInvocable disabled', async () => {
@@ -280,5 +283,173 @@ describe('study tools', () => {
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('update checker & overview passthrough', () => {
+  it('compares semver strictly and parses GitHub release tag redirects', () => {
+    expect(isStrictlyNewer('0.2.1', '0.2.0')).toBe(true)
+    expect(isStrictlyNewer('0.2.0', '0.2.0')).toBe(false)
+    expect(isStrictlyNewer('0.2.0', '0.3.0')).toBe(false)
+    expect(isStrictlyNewer('0.2.0', '0.2.0-rc.1')).toBe(true)
+    expect(isStrictlyNewer('0.2.0-rc.1', '0.2.0')).toBe(false)
+    expect(extractTagFromLocation('https://github.com/crrisugi/dsh-plugin-study/releases/tag/v0.3.0')).toBe('v0.3.0')
+    expect(extractTagFromLocation('https://github.com/crrisugi/dsh-plugin-study/releases')).toBeNull()
+  })
+
+  it('probes GitHub 302 Location, respects TTL/negative cache, falls back to npm, and handles opt-out & failures', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-update-test-'))
+    try {
+      const cachePath = path.join(tmpDir, 'update-check.json')
+      let clock = 1_700_000_000_000
+      let fetchCalls = 0
+
+      const checker = new UpdateChecker({
+        currentVersion: '0.2.0',
+        cachePath,
+        env: {},
+        now: () => clock,
+        fetchFn: async () => {
+          fetchCalls += 1
+          return new Response(null, {
+            status: 302,
+            headers: { location: 'https://github.com/crrisugi/dsh-plugin-study/releases/tag/v0.3.0' },
+          })
+        },
+      })
+
+      const first = await checker.checkNow()
+      expect(first.updateAvailable).toBe(true)
+      expect(first.latestVersion).toBe('0.3.0')
+      expect(first.releaseUrl).toBe('https://github.com/crrisugi/dsh-plugin-study/releases/tag/v0.3.0')
+      expect(fetchCalls).toBe(1)
+
+      // Within 24h TTL: uses cache without calling fetch
+      clock += 60_000
+      const cached = await checker.checkNow()
+      expect(cached.latestVersion).toBe('0.3.0')
+      expect(fetchCalls).toBe(1)
+
+      // Dev-ahead installation never triggers downgrade prompt
+      const aheadChecker = new UpdateChecker({
+        currentVersion: '0.4.0',
+        cachePath,
+        env: {},
+        now: () => clock,
+        fetchFn: async () => {
+          throw new Error('should not hit network while cache valid')
+        },
+      })
+      await aheadChecker.loadFromCache()
+      expect(aheadChecker.getStatus().updateAvailable).toBe(false)
+
+      // GitHub 404 fallback to npm dist-tags
+      const npmCache = path.join(tmpDir, 'npm-fallback.json')
+      const npmChecker = new UpdateChecker({
+        currentVersion: '0.2.0',
+        cachePath: npmCache,
+        env: {},
+        now: () => clock,
+        fetchFn: async (input) => {
+          const url = String(input)
+          if (url.includes('releases/latest')) {
+            return new Response(null, { status: 404 })
+          }
+          return new Response(JSON.stringify({ latest: '0.3.1' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        },
+      })
+      const npmRes = await npmChecker.checkNow()
+      expect(npmRes.updateAvailable).toBe(true)
+      expect(npmRes.latestVersion).toBe('0.3.1')
+
+      // Network failure fail-open + 6h negative cache
+      const errCache = path.join(tmpDir, 'err-cache.json')
+      let errFetchCalls = 0
+      const errChecker = new UpdateChecker({
+        currentVersion: '0.2.0',
+        cachePath: errCache,
+        env: {},
+        now: () => clock,
+        fetchFn: async () => {
+          errFetchCalls += 1
+          throw new Error('network down')
+        },
+      })
+      const errRes = await errChecker.checkNow()
+      expect(errRes.updateAvailable).toBe(false)
+      expect(errFetchCalls).toBe(2) // HEAD releases/latest + npm fallback
+      clock += 60_000
+      await errChecker.checkNow()
+      expect(errFetchCalls).toBe(2) // negative cache prevented retry
+
+      // Opt-out env var suppresses network checks completely
+      let optOutCalls = 0
+      const optOutChecker = new UpdateChecker({
+        currentVersion: '0.2.0',
+        cachePath: path.join(tmpDir, 'opt-out.json'),
+        env: { DSH_STUDY_NO_UPDATE_CHECK: '1' },
+        fetchFn: async () => {
+          optOutCalls += 1
+          return new Response(null, { status: 302 })
+        },
+      })
+      await optOutChecker.checkNow(true)
+      expect(optOutCalls).toBe(0)
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('exposes update status in /overview API response', async () => {
+    const store = new BlueprintStore()
+    let registeredHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void> | void) | undefined
+    registerStudyApi(
+      {
+        register(route) {
+          registeredHandler = route.handler
+          return () => {}
+        },
+      },
+      {
+        store,
+        getUpdateInfo: () => ({
+          currentVersion: '0.2.0',
+          latestVersion: '0.3.0',
+          updateAvailable: true,
+          releaseUrl: 'https://github.com/crrisugi/dsh-plugin-study/releases/tag/v0.3.0',
+          checkedAt: '2026-11-20T07:00:00.000Z',
+        }),
+      },
+    )
+
+    let statusCode = 0
+    let bodyText = ''
+    const mockReq = {
+      method: 'GET',
+      url: '/study-plugin/api/overview',
+      headers: { host: '127.0.0.1:4321' },
+    } as unknown as IncomingMessage
+    const mockRes = {
+      setHeader: () => {},
+      end: (chunk?: string) => {
+        bodyText = chunk ?? ''
+      },
+      set statusCode(code: number) {
+        statusCode = code
+      },
+      get statusCode() {
+        return statusCode
+      },
+    } as unknown as ServerResponse
+
+    await registeredHandler?.(mockReq, mockRes)
+    expect(statusCode).toBe(200)
+    const json = JSON.parse(bodyText) as { ok: boolean; update?: { latestVersion: string; updateAvailable: boolean } }
+    expect(json.ok).toBe(true)
+    expect(json.update?.updateAvailable).toBe(true)
+    expect(json.update?.latestVersion).toBe('0.3.0')
   })
 })

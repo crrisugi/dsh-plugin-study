@@ -1,0 +1,114 @@
+name: Release & Market Feed
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify-and-build-market:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify package version matches tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          tag_ver="${TAG_NAME#v}"
+          pkg_ver="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          if [ "$tag_ver" != "$pkg_ver" ]; then
+            echo "Version mismatch: tag=$tag_ver package.json=$pkg_ver" >&2
+            exit 1
+          fi
+
+      - name: Run typecheck, build, tests, and asset lint
+        run: pnpm run verify
+
+      - name: Generate Format 1 market feed
+        run: |
+          mkdir -p market
+          node scripts/generate-market-entry.mjs > market/index.json
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('market/index.json','utf8'));if(d.format!==1||!Array.isArray(d.plugins)||d.plugins.length===0)process.exit(1);"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: market
+
+      - name: Extract release notes and create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          node - <<'JS'
+          const fs = require('fs');
+          const ver = process.env.TAG_NAME.replace(/^[vV]/, '');
+          const lines = fs.readFileSync('CHANGELOG.md', 'utf8').split(/\r?\n/);
+          const escaped = ver.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const pat = new RegExp(`^##\\s+\\[?v?${escaped}\\]?(?:\\s|$)`);
+          let collecting = false;
+          const out = [];
+          for (const line of lines) {
+            if (line.startsWith('## ')) {
+              if (collecting) break;
+              if (pat.test(line.trim())) {
+                collecting = true;
+                continue;
+              }
+            } else if (collecting) {
+              out.push(line);
+            }
+          }
+          fs.writeFileSync('/tmp/release-notes.md', out.join('\n').trim() + '\n');
+          JS
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            if [ -s /tmp/release-notes.md ] && grep -q '[^[:space:]]' /tmp/release-notes.md; then
+              gh release create "$TAG_NAME" --title "$TAG_NAME" --notes-file /tmp/release-notes.md
+            else
+              gh release create "$TAG_NAME" --title "$TAG_NAME" --generate-notes
+            fi
+          fi
+
+  deploy-pages:
+    needs: verify-and-build-market
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

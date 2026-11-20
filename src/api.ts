@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { BlueprintStore } from './blueprint-store.js'
-import { API_PREFIX } from './contract.js'
+import { API_PREFIX, type UpdateInfo } from './contract.js'
 import { enforceTrustFence } from './trust-fence.js'
 
 export interface WebServerLike {
@@ -24,6 +24,7 @@ export function registerStudyApi(
   deps: {
     store: BlueprintStore
     resolveSessionCwd?: ((sessionId: string) => string | undefined) | undefined
+    getUpdateInfo?: (() => UpdateInfo) | undefined
   },
 ): () => void {
   return webServer.register({
@@ -48,10 +49,12 @@ export function registerStudyApi(
 
       if (subPath === '/overview' || subPath === '/') {
         const blueprints = await deps.store.listBlueprints({ sessionId, cwd })
+        const update = deps.getUpdateInfo?.()
         sendJson(res, 200, {
           ok: true,
           sessionId: sessionId ?? null,
           blueprints,
+          ...(update ? { update } : {}),
         })
         return
       }

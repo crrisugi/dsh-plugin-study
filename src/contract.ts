@@ -51,10 +51,19 @@ export interface CardDetailView {
   readonly inlineSvgs?: Readonly<Record<string, string>> | undefined
 }
 
+export interface UpdateInfo {
+  readonly currentVersion: string
+  readonly latestVersion: string | null
+  readonly updateAvailable: boolean
+  readonly releaseUrl: string
+  readonly checkedAt: string | null
+}
+
 export interface OverviewResponse {
   readonly ok: true
   readonly sessionId: string | null
   readonly blueprints: readonly BlueprintView[]
+  readonly update?: UpdateInfo | undefined
 }
 
 export interface CardDetailResponse {

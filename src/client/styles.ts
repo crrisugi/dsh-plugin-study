@@ -204,6 +204,38 @@ const CSS_TEXT = `
   text-align: left;
   font-size: 12.5px;
 }
+.dsh-study-update-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-md, 8px);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.08);
+  font-size: 12px;
+}
+.dsh-study-update-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--dsw-alias-state-business-primary, #3b82f6);
+}
+.dsh-study-update-banner-sub {
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-secondary, inherit);
+}
+.dsh-study-update-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dsh-study-link-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
 `
 
 export function injectStudyStyles(): void {

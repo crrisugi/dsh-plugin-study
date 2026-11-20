@@ -1,9 +1,32 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BlueprintCardItem, BlueprintView, CardDetailView } from '../contract.js'
+import type { BlueprintCardItem, BlueprintView, CardDetailView, UpdateInfo } from '../contract.js'
 import { fetchArchivedCard, fetchStudyOverview, fetchSvgPreview } from './api.js'
 import { CardPreview } from './card-preview.js'
 import { sanitizeSvgForPreview } from './sanitize-svg.js'
 import { useCurrentSessionId } from './use-session.js'
+
+const UPDATE_SNOOZE_KEY = 'dsh-plugin-study:update-snooze-until'
+const UPDATE_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000
+
+function readSnoozeUntil(): number {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return 0
+    const raw = window.localStorage.getItem(UPDATE_SNOOZE_KEY)
+    const parsed = raw ? Number(raw) : 0
+    return Number.isFinite(parsed) ? parsed : 0
+  } catch {
+    return 0
+  }
+}
+
+function writeSnoozeUntil(ts: number): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return
+    window.localStorage.setItem(UPDATE_SNOOZE_KEY, String(ts))
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+}
 
 export interface StudyBlueprintTabProps {
   readonly uiSession: unknown
@@ -36,6 +59,8 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
   const [cardDetail, setCardDetail] = useState<CardDetailView | null>(null)
   const [previewSvg, setPreviewSvg] = useState<{ name: string; html: string } | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [snoozedUntil, setSnoozedUntil] = useState<number>(() => readSnoozeUntil())
 
   const handleCopyPrompt = async (key: string, text: string) => {
     try {
@@ -66,6 +91,7 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
     try {
       const res = await fetchStudyOverview(sessionId)
       setBlueprints(res.blueprints)
+      setUpdateInfo(res.update ?? null)
       setSelectedKey((prev) => {
         if (prev && res.blueprints.some((b) => b.key === prev)) return prev
         return res.blueprints[0]?.key ?? ''
@@ -132,6 +158,9 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
   const doneCount = activeBlueprint?.cards.filter((c) => c.status === 'done').length ?? 0
   const totalCount = activeBlueprint?.cards.length ?? 0
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+  const showUpdateBanner = Boolean(
+    updateInfo?.updateAvailable && updateInfo.latestVersion && Date.now() >= snoozedUntil,
+  )
 
   return (
     <div className="dsh-study-root">
@@ -173,6 +202,40 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
           ) : null}
         </div>
       </div>
+
+      {showUpdateBanner && updateInfo?.latestVersion ? (
+        <div className="dsh-study-update-banner" role="status">
+          <div className="dsh-study-update-banner-head">
+            <span>
+              有新版 v{updateInfo.latestVersion}（当前 v{updateInfo.currentVersion}）
+            </span>
+          </div>
+          <div className="dsh-study-update-banner-sub">
+            请在 DSH 插件页更新，或通过市场源 / npm 升级。
+          </div>
+          <div className="dsh-study-update-banner-actions">
+            <a
+              href={updateInfo.releaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dsh-study-btn dsh-study-btn-primary dsh-study-link-btn"
+            >
+              查看更新说明
+            </a>
+            <button
+              type="button"
+              className="dsh-study-btn"
+              onClick={() => {
+                const until = Date.now() + UPDATE_SNOOZE_MS
+                writeSnoozeUntil(until)
+                setSnoozedUntil(until)
+              }}
+            >
+              7 天内不提醒
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="dsh-study-section" style={{ borderColor: '#dc2626', color: '#dc2626' }}>
