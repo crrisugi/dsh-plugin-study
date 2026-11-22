@@ -7,12 +7,14 @@
 1. **显式零污染双技能（`study` + `study-feedback`）**：
    - 日常编程与常规问答完全隐身（`modelInvocable: false`），仅当用户输入 `/study` 或 `/study-feedback` 时触发；
    - 靶向直答一屏算例答清，分卡伴学按“首轮选定深度档位 $\rightarrow$ 按需摸底与先修分流（原生 `ask_user_question` 点选卡片） $\rightarrow$ 排定蓝图与底座算例 $\rightarrow$ 草稿纸推演配图 $\rightarrow$ 确认归档”推进。
-2. **双受控工具接管文件与沙箱绘图**：
+2. **四项受控工具接管按需规范、沙箱绘图与抽屉同步**：
    - `study_read_reference`：从插件包内按需读取 10 份正交草稿纸表征规范，保持工具 Schema 静态不变以维持 DeepSeek KV Cache 命中率；
-   - `study_render_plot`：在隔离临时沙箱调用内置 `plot_helper.py`（经 `uv run`）或清洗手写圆角 `<svg>`，导出瘦身 `.svg` 并返回标准 Markdown `![图注](路径)` 原位渲染（免除终端审批弹窗）。
+   - `study_read_workflow`：按需加载 `long-corpus`（百页长卷总图）、`plotting`（原件图示搬运与绘图施工）与 `archiving`（自然讲义落盘与骨架示例）三份专项规程，为主干节省上下文；
+   - `study_render_plot`：在隔离临时沙箱调用内置 `plot_helper.py`（经 `uv run`，支持文字转曲、防撞体检与特征点小表透传）或清洗手写圆角 `<svg>` 并自动经 `check_svg.py` 体检，导出瘦身 `.svg` 返回标准 Markdown `![图注](路径)` 原位渲染（免除终端审批弹窗）；
+   - `study_sync_blueprint`：实时同步会话蓝图与进度（支持 `卡 02_0.1` 先修卡与 `卡 01.1` 子卡编号），并顺带执行磁盘配图实存（兼容 `.svg / .png / .jpg / .webp`）与正文原件索引自检。
 3. **Web UI 右侧栏「伴学脉络」抽屉（`./client`）**：
-   - 实时同步当前会话蓝图（由 `study_sync_blueprint` 推送，支持自定义工作区相对笔记目录 `notesDir` 并顺带执行磁盘断链自检）与自动扫描 `./学习笔记/*/00_伴学脉络蓝图.md`；
-   - 支持卡片进度追踪、快捷复制“落盘/继续”口令、归档卡分段与 `.svg` 图文同屏安全预览及深浅色主题自适应；在 TUI / Headless 模式下自动优雅降级，不影响主插件加载。
+   - 实时同步当前会话蓝图（支持自定义工作区相对笔记目录 `notesDir`）并自动扫描 `./学习伴学/*/00_伴学脉络蓝图.md` 与 `./学习笔记/*/00_伴学脉络蓝图.md`；
+   - 支持卡片进度追踪、快捷复制“落盘/继续”口令、自然讲义归档卡分段与 `.svg` / 搬运位图原图同屏安全预览及深浅色主题自适应；在 TUI / Headless 模式下自动优雅降级，不影响主插件加载。
 4. **轻量更新感知（零 LLM Token、不打断伴学）**：
    - 插件后端在初始化后异步检查新版（`24` 小时成功缓存 / `6` 小时失败负缓存，经 GitHub Releases 重定向头探测并回退 npm `dist-tags`），绝不阻塞宿主启动；
    - 发现严格新版时，仅在右侧栏抽屉顶部展示一行主题自适应提示横幅（附 Release 说明链接与“7 天内不提醒”按钮），不自动覆盖本地安装；可设环境变量 `DSH_STUDY_NO_UPDATE_CHECK=1` 或 `NO_UPDATE_NOTIFIER=1` 禁用（`CI` 环境默认关闭）。

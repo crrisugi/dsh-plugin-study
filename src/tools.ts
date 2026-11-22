@@ -5,7 +5,14 @@ import * as path from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { BlueprintStore } from './blueprint-store.js'
-import { REFERENCE_TOPICS, type CardStatus, type ProbeStatus, type ReferenceTopic } from './contract.js'
+import {
+  REFERENCE_TOPICS,
+  WORKFLOW_TOPICS,
+  type CardStatus,
+  type ProbeStatus,
+  type ReferenceTopic,
+  type WorkflowTopic,
+} from './contract.js'
 import { resolveAssetsDir } from './skills.js'
 
 export interface ToolsServiceLike {
@@ -68,14 +75,14 @@ function resolveSafeOutputSvgPath(cwd: string, svgPath: string | undefined, fall
   }
 }
 
-function runUvPython(projectDir: string, scriptPath: string, signal?: AbortSignal): Promise<{ code: number; stdout: string; stderr: string }> {
+function runProcess(
+  cmd: string,
+  args: readonly string[],
+  env: NodeJS.ProcessEnv,
+  signal?: AbortSignal,
+): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      PYTHONDONTWRITEBYTECODE: '1',
-      UV_PROJECT_ENVIRONMENT: path.join(os.tmpdir(), 'dsh-plugin-study-uv-venv'),
-    }
-    const child = spawn('uv', ['run', '--project', projectDir, scriptPath], {
+    const child = spawn(cmd, [...args], {
       env,
       signal,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -93,12 +100,53 @@ function runUvPython(projectDir: string, scriptPath: string, signal?: AbortSigna
   })
 }
 
+function runUvPython(projectDir: string, scriptPath: string, signal?: AbortSignal): Promise<{ code: number; stdout: string; stderr: string }> {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PYTHONDONTWRITEBYTECODE: '1',
+    STUDY_NO_UPDATE_CHECK: '1',
+    UV_PROJECT_ENVIRONMENT: path.join(os.tmpdir(), 'dsh-plugin-study-uv-venv'),
+  }
+  return runProcess('uv', ['run', '--project', projectDir, scriptPath], env, signal)
+}
+
+async function runCheckSvgScript(pyProjectDir: string, svgAbsPath: string, signal?: AbortSignal): Promise<string[]> {
+  const checkScript = path.join(pyProjectDir, 'check_svg.py')
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PYTHONDONTWRITEBYTECODE: '1',
+    PYTHONIOENCODING: 'utf-8',
+  }
+  const candidates: Array<[string, string[]]> = [
+    ['python', [checkScript, svgAbsPath]],
+    ['python3', [checkScript, svgAbsPath]],
+    ['uv', ['run', '--project', pyProjectDir, 'python', checkScript, svgAbsPath]],
+  ]
+  for (const [cmd, args] of candidates) {
+    try {
+      const res = await runProcess(cmd, args, env, signal)
+      if (res.code === 0) return []
+      const raw = (res.stderr || res.stdout).trim()
+      return raw
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^-\s*/, '').trim())
+        .filter((line) => line.length > 0 && !line.startsWith('[FAIL]'))
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') continue
+      return []
+    }
+  }
+  return []
+}
+
 export function createStudyTools(opts: {
   store: BlueprintStore
   getWorkingDirectory?: (() => WorkingDirectoryServiceLike | undefined) | undefined
 }): ToolDefinition[] {
   const assetsDir = resolveAssetsDir()
   const refsDir = path.join(assetsDir, 'references')
+  const workflowsDir = path.join(assetsDir, 'workflows')
   const pyProjectDir = path.join(assetsDir, 'python')
 
   const readReferenceTool = defineTool({
@@ -136,6 +184,41 @@ export function createStudyTools(opts: {
     },
   })
 
+  const readWorkflowTool = defineTool({
+    name: 'study_read_workflow',
+    description:
+      '按需读取内置的 3 份伴学专项流程细则：long-corpus（百页长卷总图）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）。',
+    parameters: {
+      workflow: {
+        type: 'string',
+        enum: [...WORKFLOW_TOPICS],
+        required: true,
+        description: '流程文件名（不含 .md 后缀）：long-corpus、plotting 或 archiving。',
+      },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          workflow: { type: 'string', required: true },
+          content: { type: 'string', required: true },
+        },
+      },
+      render: (_args, value) => [{ type: 'text', text: value.content }],
+    },
+    isConcurrencySafe: () => true,
+    execute: async (args) => {
+      const workflow = args.workflow as WorkflowTopic
+      if (!WORKFLOW_TOPICS.includes(workflow)) {
+        throw new Error(`Unknown workflow topic: ${String(args.workflow)}`)
+      }
+      const wfPath = path.join(workflowsDir, `${workflow}.md`)
+      const content = await fs.readFile(wfPath, 'utf-8')
+      return { workflow, content }
+    },
+  })
+
   const renderPlotTool = defineTool({
     name: 'study_render_plot',
     description:
@@ -154,7 +237,7 @@ export function createStudyTools(opts: {
       svgPath: {
         type: 'string',
         description:
-          '工作区相对保存路径（如 ./学习笔记/傅里叶光学/assets/卡01_相量.svg）。靶向直答或纯会话伴读可省略以存入临时目录。',
+          '工作区相对保存路径（如 ./学习伴学/傅里叶光学/assets/卡01_相量.svg）。靶向直答或纯会话伴读可省略以存入临时目录。',
       },
       caption: {
         type: 'string',
@@ -169,14 +252,25 @@ export function createStudyTools(opts: {
           path: { type: 'string', required: true },
           bytes: { type: 'number', required: true },
           markdownImage: { type: 'string', required: true },
+          stdout: { type: 'string' },
+          warnings: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'plot_helper 或 check_svg.py 返回的布局碰撞、配色与原件索引自检提醒。',
+          },
         },
       },
-      render: (_args, value) => [
-        {
-          type: 'text',
-          text: `SVG generated (${value.bytes} bytes): ${value.markdownImage}`,
-        },
-      ],
+      render: (_args, value) => {
+        const lines = [`SVG generated (${value.bytes} bytes): ${value.markdownImage}`]
+        if (typeof value.stdout === 'string' && value.stdout.trim()) {
+          lines.push(`脚本输出：\n${value.stdout.trim()}`)
+        }
+        const warnList = Array.isArray(value.warnings) ? value.warnings : []
+        if (warnList.length > 0) {
+          lines.push(`SVG 快检提醒（请按提示修正后重画）：\n- ${warnList.join('\n- ')}`)
+        }
+        return [{ type: 'text', text: lines.join('\n\n') }]
+      },
     },
     execute: async (args, exec) => {
       const sessionId = sessionOf(exec)
@@ -189,7 +283,11 @@ export function createStudyTools(opts: {
       const caption = args.caption?.trim() || '伴学矢量配图'
 
       let finalSvg = ''
+      let scriptStdout = ''
+      let warnings: string[] = []
+      let isRawSvg = false
       if (args.rawSvg && args.rawSvg.trim()) {
+        isRawSvg = true
         const cleaned = stripDangerousSvgMarkup(args.rawSvg.trim())
         if (!cleaned.includes('<svg')) {
           throw new Error('rawSvg must contain a valid <svg> root element')
@@ -229,6 +327,13 @@ export function createStudyTools(opts: {
           if (res.code !== 0) {
             throw new Error(`Python 绘图执行失败 (exit ${res.code}):\n${res.stderr || res.stdout}`)
           }
+          scriptStdout = res.stdout.trim()
+          if (res.stderr.includes('[plot_helper 自检提示]')) {
+            warnings = res.stderr
+              .split(/\r?\n/)
+              .map((line) => line.replace(/^-\s*/, '').trim())
+              .filter((line) => line.length > 0 && !line.includes('[plot_helper 自检提示]'))
+          }
           finalSvg = await fs.readFile(tmpSvg, 'utf-8')
         } finally {
           await fs.rm(tmpSandbox, { recursive: true, force: true }).catch(() => {})
@@ -240,11 +345,20 @@ export function createStudyTools(opts: {
       await fs.mkdir(path.dirname(target.absPath), { recursive: true })
       assertNoPrivateGlyphs(finalSvg)
       await fs.writeFile(target.absPath, finalSvg.endsWith('\n') ? finalSvg : `${finalSvg}\n`, 'utf-8')
+      if (isRawSvg) {
+        warnings = await runCheckSvgScript(pyProjectDir, target.absPath, exec.signal)
+      }
       opts.store.recordSessionSvg(sessionId, target.assetName, finalSvg)
 
       const bytes = Buffer.byteLength(finalSvg, 'utf-8')
       const markdownImage = `![${caption}](${target.displayPath})`
-      return { path: target.displayPath, bytes, markdownImage }
+      return {
+        path: target.displayPath,
+        bytes,
+        markdownImage,
+        ...(scriptStdout ? { stdout: scriptStdout } : {}),
+        ...(warnings.length > 0 ? { warnings } : {}),
+      }
     },
   })
 
@@ -264,7 +378,7 @@ export function createStudyTools(opts: {
       },
       notesDir: {
         type: 'string',
-        description: '当前伴学笔记的工作区相对目录（如 "./学习笔记/傅里叶衍射" 或 "./notes/傅里叶衍射"；纯会话伴读不落盘时省略）。',
+        description: '当前伴学笔记的工作区相对目录（如 "./学习伴学/傅里叶衍射" 或 "./notes/傅里叶衍射"；纯会话伴读不落盘时省略）。',
       },
       depthMode: {
         type: 'string',
@@ -297,7 +411,7 @@ export function createStudyTools(opts: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true, description: '如 "卡 01"' },
+            id: { type: 'string', required: true, description: '如 "卡 01"、"卡 02_0.1"、"卡 01.1"' },
             title: { type: 'string', required: true, description: '卡片主题（先修卡括注“先修铺垫”；核心推导卡括注“核心”）' },
             summary: { type: 'string', required: true, description: '这一步主要搞懂什么' },
             isCore: { type: 'boolean', description: '是否为核心推导卡' },
@@ -397,7 +511,7 @@ export function createStudyTools(opts: {
     },
   })
 
-  return [readReferenceTool, renderPlotTool, syncBlueprintTool]
+  return [readReferenceTool, readWorkflowTool, renderPlotTool, syncBlueprintTool]
 }
 
 export function registerStudyTools(

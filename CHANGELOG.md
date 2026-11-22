@@ -2,6 +2,18 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.5] - 2026-11-22
+
+### Added
+- 新增按需专项流程读取工具 `study_read_workflow` 与 3 份内置流程细则 `assets/workflows/long-corpus.md`（百页长卷总图与跨单元推进）、`assets/workflows/plotting.md`（原件清晰图示搬运与双类绘图施工）与 `assets/workflows/archiving.md`（自然讲义落盘与骨架示例）。
+- 内置纯标准库体检脚本 `assets/python/check_svg.py` 与 `assets/python/check_notes.py`，并在 `study_render_plot` 的手写 SVG 分支自动触发快检返回布局穿字、越界、浅底、主色系与原件式号/章节索引提醒；在 `plotCode` 分支透传脚本 `stdout`（特征点小表）与 `plot_helper` 自检提示。
+
+### Changed
+- 全量同步 `study` 伴学主干规程至对齐 `study-skill v0.2.5`：包含独立单轮新符号快筛、4 题摸底扩宽、补钻下位断点硬触发、先修卡统一编号 `目标卡号_0.1 / _0.2`、并列概览与多独立机制拆子卡 `01.1 / 01.2`、讲解与落盘笔记独立可读定位（清零正文/小标题/核心结论/配图原件式号与章节/附录索引，跨卡隔段直写算式）、原件已有清晰图示由直接指认升级为复制/截取/重画搬进对话与 `assets/`，以及废止五块黑括号列表模板、改为沿用对话自然 `##` 小标题讲义落盘与摸底成果无痕融入。
+- 升级 `assets/python/plot_helper.py` 至矢量文字转曲（`svg.fonttype="path"`）、自动空角说明框 `note_box`、16 向防压线 `label_point`、图例防撞与纯文字碰撞自检；同步在 `study-feedback` 补入零打字多候选卡顿先确认护栏。
+- 升级 `src/blueprint-store.ts` 与 `src/client/card-preview.tsx`：精准识别 `卡 02_0.1`、`卡 03.1_0.1`、`卡 01.1` 等新编号并防正卡 `0.x` 标题误判；兼容 `./学习伴学/` 与 `./学习笔记/` 双目录扫描；放行并内联预览搬运入 `assets/` 的 `.png / .jpg / .jpeg / .webp` 位图原图；在 `validateSyncedNotes` 补入跳过卡头与代码块的正文漏网原件索引、全角感叹号与染色代码自检提醒。
+- 升级 `scripts/lint-assets.mjs` 与 `tests/plugin.test.ts`：纳入 `assets/workflows/*.md` 双向路由对齐、行数与文风门禁，并补全 `study_read_workflow`、先修编号、多格式原图与索引告警单测。
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

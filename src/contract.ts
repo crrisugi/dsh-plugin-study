@@ -13,6 +13,10 @@ export const REFERENCE_TOPICS = [
 
 export type ReferenceTopic = (typeof REFERENCE_TOPICS)[number]
 
+export const WORKFLOW_TOPICS = ['long-corpus', 'plotting', 'archiving'] as const
+
+export type WorkflowTopic = (typeof WORKFLOW_TOPICS)[number]
+
 export type CardStatus = 'pending' | 'active' | 'done'
 export type ProbeStatus = 'pending' | 'probed' | 'skipped'
 
@@ -49,6 +53,7 @@ export interface CardDetailView {
   readonly markdown: string
   readonly svgRefs: readonly string[]
   readonly inlineSvgs?: Readonly<Record<string, string>> | undefined
+  readonly inlineImages?: Readonly<Record<string, string>> | undefined
 }
 
 export interface UpdateInfo {

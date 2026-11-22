@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { CardDetailView } from '../contract.js'
 import { sanitizeSvgForPreview } from './sanitize-svg.js'
 
-const IMG_LINE_RE = /^!\[([^\]]*)\]\((?:assets\/|\.\/assets\/)([a-zA-Z0-9_\u4e00-\u9fa5.-]+\.svg)\)\s*$/
+const IMG_LINE_RE = /^!\[([^\]]*)\]\((?:assets\/|\.\/assets\/)([a-zA-Z0-9_\u4e00-\u9fa5.-]+\.(?:svg|png|jpe?g|webp))\)\s*$/i
 
 function renderInlineSegments(text: string): ReactNode[] {
   const parts: ReactNode[] = []
@@ -72,21 +72,33 @@ export function CardPreview(props: { readonly detail: CardDetailView }): ReactNo
     const imgMatch = IMG_LINE_RE.exec(trimmed)
     if (imgMatch?.[2]) {
       const caption = imgMatch[1]?.trim() || imgMatch[2]
-      const svgName = imgMatch[2]
-      const rawSvg = detail.inlineSvgs?.[svgName]
+      const assetName = imgMatch[2]
+      const rawSvg = detail.inlineSvgs?.[assetName]
       const safeHtml = rawSvg ? sanitizeSvgForPreview(rawSvg) : ''
+      const imgDataUrl = detail.inlineImages?.[assetName]
       if (safeHtml) {
-        renderedSvgs.add(svgName)
+        renderedSvgs.add(assetName)
         blocks.push(
           <figure key={`fig-${keyIdx++}`} className="dsh-study-inline-figure">
             <div className="dsh-study-svg-box" dangerouslySetInnerHTML={{ __html: safeHtml }} />
             <figcaption className="dsh-study-figcaption">{caption}</figcaption>
           </figure>,
         )
+      } else if (imgDataUrl) {
+        blocks.push(
+          <figure key={`fig-img-${keyIdx++}`} className="dsh-study-inline-figure">
+            <img
+              src={imgDataUrl}
+              alt={caption}
+              style={{ maxWidth: '100%', height: 'auto', display: 'block', margin: '0 auto', borderRadius: 6 }}
+            />
+            <figcaption className="dsh-study-figcaption">{caption}</figcaption>
+          </figure>,
+        )
       } else {
         blocks.push(
           <div key={`fig-miss-${keyIdx++}`} className="dsh-study-md-muted">
-            [配图：{caption}（{svgName}）]
+            [配图：{caption}（{assetName}）]
           </div>,
         )
       }

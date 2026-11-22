@@ -5,7 +5,7 @@ import * as path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { registerStudyApi } from '../src/api.js'
 import { BlueprintStore, parseBlueprintMarkdown } from '../src/blueprint-store.js'
-import { REFERENCE_TOPICS } from '../src/contract.js'
+import { REFERENCE_TOPICS, WORKFLOW_TOPICS } from '../src/contract.js'
 import { loadBundledSkills, parseSkillMarkdown } from '../src/skills.js'
 import { createStudyTools } from '../src/tools.js'
 import { isLoopbackHostname, isTrustedApiRequest } from '../src/trust-fence.js'
@@ -61,6 +61,36 @@ describe('blueprint store & markdown parser', () => {
     expect(view.cards[0]?.status).toBe('done')
     expect(view.cards[1]?.status).toBe('active')
     expect(view.cards[1]?.isCore).toBe(true)
+  })
+
+  it('distinguishes prereq _0.1 / subcard .1 numbering and avoids 0.x title collision', () => {
+    const md = [
+      '# 00｜学习脉络：先修与子卡编号测试',
+      '> **学习材料**：ch01.md ｜ **默认深度**：标准推演',
+      '- **代入的具体数值**：`a = 2, b = 3`',
+      '| 卡 02_0.1 | 含参定积分（先修铺垫） | 分清外参与哑元 |',
+      '| 卡 02_0.2 | 时间卷积（先修铺垫） | 算通翻转平移 |',
+      '| 卡 02 | 时域本构关系 | 引入张量卷积 |',
+      '| 卡 03.1_0.1 | 子卡先修（先修铺垫） | 补齐底座 |',
+      '| 卡 03.1 | 机制甲 | 独立展开 |',
+    ].join('\n')
+
+    const view = parseBlueprintMarkdown(md, {
+      key: 'ws:编号测试',
+      fallbackTopic: '编号测试',
+      archivedFiles: ['卡02_0.1_含参定积分.md', '卡02_0.5倍频采样.md', '卡03.1_0.1_子卡先修.md'],
+      svgAssets: [],
+      updatedAt: '2026-11-22T10:00:00.000Z',
+    })
+
+    expect(view.toyExampleValues).toBe('`a = 2, b = 3`')
+    expect(view.cards.map((c) => c.id)).toEqual(['卡 02_0.1', '卡 02_0.2', '卡 02', '卡 03.1_0.1', '卡 03.1'])
+    expect(view.cards[0]?.archivedName).toBe('卡02_0.1_含参定积分.md')
+    expect(view.cards[1]?.status).toBe('active')
+    expect(view.cards[1]?.archivedName).toBeUndefined()
+    expect(view.cards[2]?.archivedName).toBe('卡02_0.5倍频采样.md')
+    expect(view.cards[3]?.archivedName).toBe('卡03.1_0.1_子卡先修.md')
+    expect(view.cards[4]?.archivedName).toBeUndefined()
   })
 
   it('syncs session blueprints and reads workspace blueprints safely', async () => {
@@ -183,12 +213,18 @@ describe('study tools', () => {
         getWorkingDirectory: () => ({ ensure: async () => tmpDir }),
       })
       const readTool = tools.find((t) => t.name === 'study_read_reference')!
+      const workflowTool = tools.find((t) => t.name === 'study_read_workflow')!
       const plotTool = tools.find((t) => t.name === 'study_render_plot')!
 
       for (const topic of REFERENCE_TOPICS) {
         const res = (await readTool.execute({ topic }, { agent: { id: 's1' } } as never)) as { content: string }
         expect(res.content).toContain('## 1.')
         expect(res.content).toContain('## 4.')
+      }
+
+      for (const workflow of WORKFLOW_TOPICS) {
+        const res = (await workflowTool.execute({ workflow }, { agent: { id: 's1' } } as never)) as { content: string }
+        expect(res.content.length).toBeGreaterThan(200)
       }
 
       const plotRes = (await plotTool.execute(
@@ -205,6 +241,17 @@ describe('study tools', () => {
       const written = await fs.readFile(path.join(tmpDir, '学习笔记/测试/assets/卡01_状态.svg'), 'utf-8')
       expect(written).not.toContain('<script')
       expect(written).not.toContain('onclick')
+
+      const refPlotRes = (await plotTool.execute(
+        {
+          rawSvg:
+            '<svg viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="400" height="160" fill="#f4f6f8"/><text x="40" y="60" font-size="13">按式 3.12 代入</text></svg>',
+          svgPath: './学习伴学/测试/assets/卡01_含式号.svg',
+          caption: '含式号测试',
+        },
+        { agent: { id: 's1' } } as never,
+      )) as { warnings?: string[] }
+      expect(refPlotRes.warnings?.join('\n') ?? '').toContain('原件式号或章节索引')
 
       await expect(
         plotTool.execute(
@@ -280,6 +327,33 @@ describe('study tools', () => {
       )) as { syncedCards: number; warnings?: string[] }
 
       expect(resClean.warnings).toBeUndefined()
+
+      await fs.writeFile(path.join(notesDir, 'assets', '卡01_原图.png'), Buffer.from('\x89PNG\r\n\x1a\nfake', 'binary'))
+      await fs.writeFile(
+        path.join(notesDir, '卡01_基础.md'),
+        '# 卡 01｜基础（原位置：第 3.2 节）\n\n## 引出核心式\n\n由式 3.12 可得，详见原书补充推导。\n\n![原图](assets/卡01_原图.png)\n',
+        'utf-8',
+      )
+      const resWithIndexWarn = (await syncTool.execute(
+        {
+          topicTitle: '校验测试',
+          notesDir: './学习笔记/校验测试',
+          depthMode: '标准推演',
+          coreProblem: '核对原图与原件索引告警',
+          currentCardId: '',
+          cards: [{ id: '卡 01', title: '基础', summary: '算例', status: 'done', archivedName: '卡01_基础.md' }],
+        },
+        { agent: { id: 's-warn' } } as never,
+      )) as { warnings?: string[] }
+      expect(resWithIndexWarn.warnings).toHaveLength(1)
+      expect(resWithIndexWarn.warnings?.[0]).toContain('式 3.12')
+
+      const cardWithBitmap = await store.readArchivedCard({
+        key: 'session:s-warn',
+        archivedName: '卡01_基础.md',
+        sessionId: 's-warn',
+      })
+      expect(cardWithBitmap?.inlineImages?.['卡01_原图.png']).toMatch(/^data:image\/png;base64,/)
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true })
     }

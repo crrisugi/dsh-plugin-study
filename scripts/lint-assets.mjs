@@ -5,16 +5,23 @@ import { fileURLToPath } from 'node:url'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ASSETS_DIR = path.join(ROOT, 'assets')
 const REFS_DIR = path.join(ASSETS_DIR, 'references')
+const WORKFLOWS_DIR = path.join(ASSETS_DIR, 'workflows')
 const STUDY_MD = path.join(ASSETS_DIR, 'skills', 'study', 'SKILL.md')
 const FEEDBACK_MD = path.join(ASSETS_DIR, 'skills', 'study-feedback', 'SKILL.md')
 const PLOT_HELPER = path.join(ASSETS_DIR, 'python', 'plot_helper.py')
+const CHECK_SVG = path.join(ASSETS_DIR, 'python', 'check_svg.py')
+const CHECK_NOTES = path.join(ASSETS_DIR, 'python', 'check_notes.py')
 
 const errors = []
 
 const studyRaw = fs.readFileSync(STUDY_MD, 'utf-8')
 const studyLines = studyRaw.split(/\r?\n/)
-if (studyLines.length > 175) {
-  errors.push(`assets/skills/study/SKILL.md 行数超限: ${studyLines.length} > 175`)
+const studyChars = studyLines.reduce((acc, line) => acc + line.length, 0)
+if (studyLines.length > 200) {
+  errors.push(`assets/skills/study/SKILL.md 行数超限: ${studyLines.length} > 200`)
+}
+if (studyChars > 12500) {
+  errors.push(`assets/skills/study/SKILL.md 总字数超限: ${studyChars} > 12500`)
 }
 
 const fbRaw = fs.readFileSync(FEEDBACK_MD, 'utf-8')
@@ -31,10 +38,27 @@ function stripCodeAndTemplates(mdText) {
   return head
 }
 
-for (const [label, raw] of [
+const diskWfs = fs.existsSync(WORKFLOWS_DIR)
+  ? fs.readdirSync(WORKFLOWS_DIR).filter((f) => f.endsWith('.md')).sort()
+  : []
+const linkedWfs = [...new Set([...studyRaw.matchAll(/\(workflows\/([a-zA-Z0-9_-]+\.md)\)/g)].map((m) => m[1]))].sort()
+if (JSON.stringify(diskWfs) !== JSON.stringify(linkedWfs)) {
+  errors.push(`专项流程路由双向对齐失败: disk=${diskWfs.join(',')} vs linked=${linkedWfs.join(',')}`)
+}
+for (const file of diskWfs) {
+  const txt = fs.readFileSync(path.join(WORKFLOWS_DIR, file), 'utf-8')
+  const lines = txt.split(/\r?\n/).filter((_, i, arr) => i < arr.length - 1 || txt.split(/\r?\n/).at(-1) !== '')
+  if (lines.length < 20 || lines.length > 80) {
+    errors.push(`workflows/${file} 行数越界: ${lines.length} (要求 20~80)`)
+  }
+}
+
+const proseDocs = [
   ['assets/skills/study/SKILL.md', studyRaw],
   ['assets/skills/study-feedback/SKILL.md', fbRaw],
-]) {
+  ...diskWfs.map((file) => [`assets/workflows/${file}`, fs.readFileSync(path.join(WORKFLOWS_DIR, file), 'utf-8')]),
+]
+for (const [label, raw] of proseDocs) {
   const prose = stripCodeAndTemplates(raw)
   if (/[！!]/.test(prose)) {
     errors.push(`${label} 正文含禁用感叹号`)
@@ -65,6 +89,8 @@ for (const file of diskRefs) {
 
 for (const reqFile of [
   PLOT_HELPER,
+  CHECK_SVG,
+  CHECK_NOTES,
   path.join(ASSETS_DIR, 'python', 'pyproject.toml'),
   path.join(ASSETS_DIR, 'python', 'uv.lock'),
   path.join(ASSETS_DIR, 'icon.svg'),
@@ -121,4 +147,6 @@ if (errors.length > 0) {
   process.exit(1)
 }
 
-console.log(`[PASS] study=${studyLines.length}行 | refs=${diskRefs.length}份四槽双向对齐 | study-feedback=${fbLines.length}行 | 隐私零残留`)
+console.log(
+  `[PASS] study=${studyLines.length}行/${studyChars}字 | workflows=${diskWfs.length}份双向对齐 | refs=${diskRefs.length}份四槽双向对齐 | study-feedback=${fbLines.length}行 | 隐私零残留`,
+)
