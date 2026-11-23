@@ -154,6 +154,19 @@ const CSS_TEXT = `
 .dsh-study-md-h2 { font-size: 12.5px; font-weight: 700; margin: 10px 0 4px; }
 .dsh-study-md-h3 { font-size: 12px; font-weight: 600; margin: 8px 0 4px; }
 .dsh-study-md-p { margin: 4px 0; }
+.dsh-study-md-hr {
+  border: none;
+  border-top: 1px solid var(--dsw-alias-border-l3, rgba(148, 163, 184, 0.32));
+  margin: 10px 0;
+}
+.dsh-study-md-quote {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--dsw-alias-state-business-primary, #3b82f6);
+  border-radius: 0 var(--dsw-radius-sm, 6px) var(--dsw-radius-sm, 6px) 0;
+  background: var(--dsw-alias-bg-layer-1, rgba(148, 163, 184, 0.08));
+}
+.dsh-study-md-quote .dsh-study-md-p { margin: 3px 0; }
 .dsh-study-md-li { display: flex; gap: 6px; margin: 4px 0; }
 .dsh-study-md-bullet { color: var(--dsw-alias-label-tertiary, inherit); flex-shrink: 0; }
 .dsh-study-md-muted { font-size: 11.5px; color: var(--dsw-alias-label-tertiary, inherit); margin: 4px 0; }

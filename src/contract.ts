@@ -13,7 +13,7 @@ export const REFERENCE_TOPICS = [
 
 export type ReferenceTopic = (typeof REFERENCE_TOPICS)[number]
 
-export const WORKFLOW_TOPICS = ['long-corpus', 'plotting', 'archiving'] as const
+export const WORKFLOW_TOPICS = ['long-corpus', 'plotting', 'archiving', 'teaching-style'] as const
 
 export type WorkflowTopic = (typeof WORKFLOW_TOPICS)[number]
 

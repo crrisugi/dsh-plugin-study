@@ -187,13 +187,13 @@ export function createStudyTools(opts: {
   const readWorkflowTool = defineTool({
     name: 'study_read_workflow',
     description:
-      '按需读取内置的 3 份伴学专项流程细则：long-corpus（百页长卷总图）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）。',
+      '按需读取内置的 4 份伴学专项流程细则：long-corpus（百页长卷总图）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）、teaching-style（清朗书面讲义语言风格卡）。',
     parameters: {
       workflow: {
         type: 'string',
         enum: [...WORKFLOW_TOPICS],
         required: true,
-        description: '流程文件名（不含 .md 后缀）：long-corpus、plotting 或 archiving。',
+        description: '流程文件名（不含 .md 后缀）：long-corpus、plotting、archiving 或 teaching-style。',
       },
     },
     output: {
@@ -365,7 +365,7 @@ export function createStudyTools(opts: {
   const syncBlueprintTool = defineTool({
     name: 'study_sync_blueprint',
     description:
-      '将当前分卡伴学的脉络蓝图、底座算例与各卡完成进度同步至右侧栏「伴学脉络」抽屉（排定蓝图及每卡确认归档后调用）。',
+      '将当前分卡伴学的脉络蓝图与各卡完成进度同步至右侧栏「伴学脉络」抽屉（排定蓝图及每卡确认归档后调用）。',
     parameters: {
       topicTitle: {
         type: 'string',
@@ -393,11 +393,11 @@ export function createStudyTools(opts: {
       },
       toyExampleRange: {
         type: 'string',
-        description: '贯穿全篇的统一最小输入与范围设定。',
+        description: '可选，兼容旧版蓝图或单卡固定示例的输入范围。',
       },
       toyExampleValues: {
         type: 'string',
-        description: '贯穿全篇固定代入的具体小整数或基函数。',
+        description: '可选，兼容旧版蓝图或单卡固定示例的基准数值。',
       },
       currentCardId: {
         type: 'string',

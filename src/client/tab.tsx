@@ -247,7 +247,7 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
         <div className="dsh-study-empty">
           <div style={{ fontWeight: 600, marginBottom: '6px' }}>暂无进行中的伴学脉络</div>
           <div>
-            在对话框输入 <code>/study</code> 并附上公式截图、论文段落或源码，选定深度档位后，此处将自动同步卡片路线、统一小算例与矢量配图预览。
+            在对话框输入 <code>/study</code> 并附上公式截图、论文段落或源码，选定深度档位后，此处将自动同步卡片路线、已学主线进度与矢量配图预览。
           </div>
         </div>
       ) : (

@@ -2,6 +2,17 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.6] - 2026-11-23
+
+### Added
+- 新增独立按需读取的伴学讲义语言风格卡 `assets/workflows/teaching-style.md`，并将其纳入 `WORKFLOW_TOPICS` 与 `study_read_workflow`（`4` 份专项规程：确立清朗现代书面讲义腔、零“我们”轻路标与平实现代动作动词、路线式 `##` 小标题与 `1. **短动作标题**：` 多步拆块、真拐点停半拍说透画面、`---` 分割线接 `核心结论/成立前提` 同框、框外零复读 `得失权衡/易混边界` 及 4 组通用正反标尺）。
+- 在蓝图模板设立动态 `## 三、已学主线与阶段收获` 账本，同步更新内置 `assets/python/check_notes.py` 支持 `--recap` 主线回看与引用框核心结论兜底解析。
+- `src/client/card-preview.tsx` 与 `src/client/styles.ts` 补齐水平分割线 `---` 与 `>` 引用块主题自适应渲染，完美呈现新定稿的结论与前提框。
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.2.6`：协同为 `assets/skills/study/SKILL.md` 语感段瘦身并挂接 `study_read_workflow("teaching-style")`；`assets/workflows/archiving.md` 同步升级为路线式小标题、`1. **动作**：` 拆块与分割线结论框骨架；`assets/workflows/plotting.md` 改为趋势图按需打印特征点小表；`10` 份 `assets/references/*.md` 明确定位为按需工具书（无需算例时跳过第 1 节）。
+- 算例改按需克制与心算底线：划清必须举小例与禁推完硬代数字验算边界，保留“拆结构简化”；废止蓝图全篇底座算例并更新 `study_sync_blueprint` 兼容描述与侧栏空态文案；明确免摸底开篇一句短话依据、先亮山顶并简对称重复，以及 `k-A` 关键转折预测与卡末易混自核的按需零打字单选（答对自动落盘）。
+
 ## [0.2.5] - 2026-11-22
 
 ### Added

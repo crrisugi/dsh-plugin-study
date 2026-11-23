@@ -15,7 +15,7 @@
 ## 二、曲线与谱图施工清单
 
 1. **内置底座接口**：`study_render_plot` 沙箱已预导入 `numpy as np`、`matplotlib.pyplot as plt`、`plot_helper as ph`；内置 `COLORS`、`BWR_CMAP`、`SEQ_CMAP`、`new_fig()`、`new_subplots(r,c)`、`new_3d_fig()`、`vec2d`、`vec3d_drop`、`heatmap`、`note_box`、`label_point`；末尾将画布赋给 `fig` 即自动文字转曲导出瘦身 `.svg`。
-2. **脚本顺带出表**：在 `plotCode` 里顺手 `print` 出正文要列的 `3~4` 个特征点或代表格数值，直接拿工具返回的输出填正文小表，保证表图一致；缺 `uv` 时直接提示用户先安装 `uv`。
+2. **脚本按需出表**：看形状趋势的图直接在图上标清关键点，正文不强制附数值小表；仅当正文确需读准数值做对比时，才在 `plotCode` 里顺手 `print` 出特征点填表，保证表图一致；缺 `uv` 时直接提示用户先安装 `uv`。
 3. **看返回不看图**：工具返回 `[plot_helper 自检提示]` 碰撞、图例或配色提醒时，调坐标或精简文案重跑，默认不读图检查。
 
 ---

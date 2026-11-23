@@ -40,6 +40,7 @@ export function CardPreview(props: { readonly detail: CardDetailView }): ReactNo
 
   let inFence = false
   let fenceLines: string[] = []
+  let quoteLines: string[] = []
   let keyIdx = 0
 
   const flushFence = () => {
@@ -52,9 +53,27 @@ export function CardPreview(props: { readonly detail: CardDetailView }): ReactNo
     fenceLines = []
   }
 
+  const flushQuote = () => {
+    if (quoteLines.length === 0) return
+    const nonEmpty = quoteLines.filter((l) => l.length > 0)
+    if (nonEmpty.length > 0) {
+      blocks.push(
+        <blockquote key={`quote-${keyIdx++}`} className="dsh-study-md-quote">
+          {nonEmpty.map((qLine, qIdx) => (
+            <p key={`qp-${qIdx}`} className="dsh-study-md-p">
+              {renderInlineSegments(qLine)}
+            </p>
+          ))}
+        </blockquote>,
+      )
+    }
+    quoteLines = []
+  }
+
   for (const rawLine of lines) {
     const trimmed = rawLine.trim()
     if (trimmed.startsWith('```')) {
+      flushQuote()
       if (inFence) {
         flushFence()
         inFence = false
@@ -67,7 +86,17 @@ export function CardPreview(props: { readonly detail: CardDetailView }): ReactNo
       fenceLines.push(rawLine)
       continue
     }
+    if (trimmed === '>' || trimmed.startsWith('> ')) {
+      quoteLines.push(trimmed === '>' ? '' : trimmed.slice(2).trim())
+      continue
+    }
+    flushQuote()
     if (!trimmed) continue
+
+    if (trimmed === '---' || trimmed === '***') {
+      blocks.push(<hr key={`hr-${keyIdx++}`} className="dsh-study-md-hr" />)
+      continue
+    }
 
     const imgMatch = IMG_LINE_RE.exec(trimmed)
     if (imgMatch?.[2]) {
@@ -139,6 +168,7 @@ export function CardPreview(props: { readonly detail: CardDetailView }): ReactNo
     }
   }
   if (inFence) flushFence()
+  flushQuote()
 
   for (const svgName of detail.svgRefs) {
     if (renderedSvgs.has(svgName)) continue
