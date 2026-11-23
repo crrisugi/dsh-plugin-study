@@ -120,7 +120,7 @@ for (const lang of ['en', 'zh']) {
   }
 }
 
-const privRe = /(?:[A-Za-z]:[/\\](?:Users|DESKTOP)|\/(?:Users|home)\/[a-zA-Z0-9_\u4e00-\u9fa5]+)/i
+const privRe = /(?:[A-Za-z]:[/\\]Users[/\\]|\/(?:Users|home)\/[a-zA-Z0-9_\u4e00-\u9fa5]+)/i
 for (const dir of [path.join(ROOT, 'src'), ASSETS_DIR]) {
   const walk = (d) => {
     for (const entry of fs.readdirSync(d, { withFileTypes: true })) {

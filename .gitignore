@@ -2,7 +2,6 @@ node_modules/
 lib/
 dist/
 coverage/
-**/local_config.json
 **/.venv/
 **/__pycache__/
 *.py[cod]
