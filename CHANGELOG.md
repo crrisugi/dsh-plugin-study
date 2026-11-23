@@ -2,6 +2,14 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.7] - 2026-11-23
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.2.7`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint` 与右侧抽屉联动）：将主干“引用直写算式”拆为精简版 `不夹原件编号` 与 `引用直写算式` 两短项，要求跨卡、隔小节、对比或代入前先完整复写当前用到的原式，且同一统称下包含总式或多条子式时引用其中某一条须写明具体子式名或作用、不拿统称笼统代指。
+- 蓝图主线账本与顶部回放白话松绑：取消 `assets/workflows/archiving.md` 的 `25~45` 字硬限与主干“更早步骤并成半句”要求，改为 `1` 条 `1~2` 句通顺动作白话（先修铺垫卡 `1` 句短话挂在正卡前），超过 `5` 条时将更早正卡与已用完先修卡合并为 `1` 条完整白话句、最近 `3~4` 张正卡原样列出。
+- 明确交互提问工具仅限开讲前短提示与总图确认环节；长讲义与半步停顿末尾一律禁弹交互控件，同时取消 `k-A` 半步预测与整卡末尾轻自核单选，改以一句平实短话收尾确认（配合右侧栏抽屉快捷复制“落盘/继续”）。
+- 全套内置资产与工具文案去重统一：精简 `assets/skills/study/SKILL.md`、`assets/workflows/archiving.md`、`assets/workflows/plotting.md`、`assets/workflows/long-corpus.md`、`assets/python/plot_helper.py` 顶部注释及 `6` 份 `assets/references/*.md` 的跨文件复读、长清单与重复提醒，并将 `src/tools.ts` 中 `study_render_plot` 的 `rawSvg` 描述统一为柔和浅底圆角 `<svg>`。
+
 ## [0.2.6] - 2026-11-23
 
 ### Added

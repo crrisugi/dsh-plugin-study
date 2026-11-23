@@ -232,7 +232,7 @@ export function createStudyTools(opts: {
       },
       rawSvg: {
         type: 'string',
-        description: '用于代码分支、指针重连或模块时序的白底圆角 <svg>...</svg> 矢量源码。与 plotCode 二选一。',
+        description: '用于代码分支、指针重连或模块时序的柔和浅底圆角 <svg>...</svg> 矢量源码。与 plotCode 二选一。',
       },
       svgPath: {
         type: 'string',
