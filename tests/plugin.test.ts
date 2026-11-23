@@ -359,6 +359,87 @@ describe('study tools', () => {
       await fs.rm(tmpDir, { recursive: true, force: true })
     }
   })
+
+  it('warns on 4+ space indented math lines while allowing valid math blocks, fenced code, and unsplit lists', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-indented-math-'))
+    try {
+      const notesDir = path.join(tmpDir, '学习伴学', '排版防呆')
+      await fs.mkdir(notesDir, { recursive: true })
+      await fs.writeFile(
+        path.join(notesDir, '00_伴学脉络蓝图.md'),
+        '# 00｜学习脉络：缩进公式测试\n| 卡 01 | 断块公式 | 拦截测试 |\n| 卡 02 | 合法结构 | 放行测试 |\n',
+        'utf-8',
+      )
+      await fs.writeFile(
+        path.join(notesDir, '卡01_断块公式.md'),
+        [
+          '# 卡 01｜断块公式',
+          '',
+          '1. **步骤**：',
+          '   - 子项：',
+          '',
+          '$$',
+          'a = b',
+          '$$',
+          '',
+          '     这里有公式 $x$。',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+      await fs.writeFile(
+        path.join(notesDir, '卡02_合法结构.md'),
+        [
+          '# 卡 02｜合法结构',
+          '',
+          '$$',
+          '    \\begin{aligned}',
+          '    a &= b + $c$',
+          '    \\end{aligned}',
+          '$$',
+          '',
+          '```markdown',
+          '    code $x$',
+          '```',
+          '',
+          '1. a',
+          '   - b',
+          '',
+          '     c $x$',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+
+      const store = new BlueprintStore()
+      const tools = createStudyTools({
+        store,
+        getWorkingDirectory: () => ({ ensure: async () => tmpDir }),
+      })
+      const syncTool = tools.find((t) => t.name === 'study_sync_blueprint')!
+
+      const res = (await syncTool.execute(
+        {
+          topicTitle: '缩进公式测试',
+          notesDir: './学习伴学/排版防呆',
+          depthMode: '标准推演',
+          coreProblem: '校验含公式缩进代码块拦截',
+          currentCardId: '',
+          cards: [
+            { id: '卡 01', title: '断块公式', summary: '拦截测试', status: 'done', archivedName: '卡01_断块公式.md' },
+            { id: '卡 02', title: '合法结构', summary: '放行测试', status: 'done', archivedName: '卡02_合法结构.md' },
+          ],
+        },
+        { agent: { id: 's-indent' } } as never,
+      )) as { warnings?: string[] }
+
+      expect(res.warnings).toHaveLength(1)
+      expect(res.warnings?.[0]).toContain('卡01_断块公式.md')
+      expect(res.warnings?.[0]).toContain('缩进代码块')
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('update checker & overview passthrough', () => {

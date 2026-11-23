@@ -9,6 +9,7 @@ All notable changes to `dsh-plugin-study` will be documented in this file.
 - 蓝图主线账本与顶部回放白话松绑：取消 `assets/workflows/archiving.md` 的 `25~45` 字硬限与主干“更早步骤并成半句”要求，改为 `1` 条 `1~2` 句通顺动作白话（先修铺垫卡 `1` 句短话挂在正卡前），超过 `5` 条时将更早正卡与已用完先修卡合并为 `1` 条完整白话句、最近 `3~4` 张正卡原样列出。
 - 明确交互提问工具仅限开讲前短提示与总图确认环节；长讲义与半步停顿末尾一律禁弹交互控件，同时取消 `k-A` 半步预测与整卡末尾轻自核单选，改以一句平实短话收尾确认（配合右侧栏抽屉快捷复制“落盘/继续”）。
 - 全套内置资产与工具文案去重统一：精简 `assets/skills/study/SKILL.md`、`assets/workflows/archiving.md`、`assets/workflows/plotting.md`、`assets/workflows/long-corpus.md`、`assets/python/plot_helper.py` 顶部注释及 `6` 份 `assets/references/*.md` 的跨文件复读、长清单与重复提醒，并将 `src/tools.ts` 中 `study_render_plot` 的 `rawSvg` 描述统一为柔和浅底圆角 `<svg>`。
+- 同步讲义分层拆块与缩进公式防呆：`assets/workflows/teaching-style.md` 将多步拆块升级为按体量分层（轻量单层编号、重载改用 `###` 三级小标题，禁止嵌套子列表夹写 `$$` 或 4 空格缩进续行）；`assets/python/check_notes.py` 与 `src/blueprint-store.ts`（`validateSyncedNotes`）同步新增 CommonMark 缩进代码块含公式拦截并在 `tests/plugin.test.ts` 补齐单测。
 
 ## [0.2.6] - 2026-11-23
 

@@ -66,6 +66,10 @@ const IMAGE_MIME_MAP: Record<string, string> = {
 const SUPPORTED_IMAGE_EXTS = new Set(['.svg', ...Object.keys(IMAGE_MIME_MAP)])
 const FENCED_CODE_RE = /(?:```[\s\S]*?```|~~~[\s\S]*?~~~)/g
 const INLINE_CODE_RE = /`[^`\n]*`/g
+const FENCE_OPEN_RE = /^[ ]{0,3}(`{3,}|~{3,})/
+const LIST_MARKER_RE = /^([ ]*)((?:[-*+]|\d{1,9}[.)])[ ]+)/
+const INLINE_OR_DISPLAY_MATH_RE = /(?<!\\)\$\$|(?<!\\)\$[^$\n]+(?<!\\)\$/
+const UNESCAPED_DOUBLE_DOLLAR_RE = /(?<!\\)\$\$/
 const FIRST_H1_RE = /^\s*#\s+[^\n]*\n?/
 const COLOR_CODE_RE = /(?:\\textcolor\b|\\color\s*\{|<span\b[^>]*\bcolor\s*:)/i
 const SOURCE_REF_RE = new RegExp(
@@ -186,6 +190,143 @@ function findArchivedFileForCard(cardId: string, archivedFiles: readonly string[
 
 function stripCodeBlocks(markdown: string): string {
   return markdown.replace(FENCED_CODE_RE, '').replace(INLINE_CODE_RE, '')
+}
+
+function expandTabs(line: string, tabSize = 4): string {
+  if (!line.includes('\t')) return line
+  let out = ''
+  let col = 0
+  for (const ch of line) {
+    if (ch === '\t') {
+      const spaces = tabSize - (col % tabSize)
+      out += ' '.repeat(spaces)
+      col += spaces
+    } else {
+      out += ch
+      col += 1
+    }
+  }
+  return out
+}
+
+function isClosingFence(stripped: string, fenceChar: string, fenceLen: number): boolean {
+  if (stripped.length < fenceLen) return false
+  for (const ch of stripped) {
+    if (ch !== fenceChar) return false
+  }
+  return true
+}
+
+export function findIndentedMathLines(markdown: string): Array<{ line: number; indent: number }> {
+  const hits: Array<{ line: number; indent: number }> = []
+  let fenceChar: string | null = null
+  let fenceLen = 0
+  let fenceContainer = 0
+  let inMath = false
+  const listIndents: number[] = []
+  let canStartIndentedCode = true
+
+  const lines = markdown.split(/\r?\n/)
+  for (let i = 0; i < lines.length; i += 1) {
+    const lineno = i + 1
+    const expanded = expandTabs(lines[i] ?? '')
+    const stripped = expanded.trim()
+    const indent = expanded.length - expanded.replace(/^ +/, '').length
+
+    if (fenceChar !== null) {
+      if (indent <= fenceContainer + 3 && isClosingFence(stripped, fenceChar, fenceLen)) {
+        fenceChar = null
+        fenceLen = 0
+        fenceContainer = 0
+        canStartIndentedCode = true
+      }
+      continue
+    }
+
+    if (inMath) {
+      if (UNESCAPED_DOUBLE_DOLLAR_RE.test(stripped)) {
+        inMath = false
+        canStartIndentedCode = true
+      }
+      continue
+    }
+
+    if (!stripped) {
+      canStartIndentedCode = true
+      continue
+    }
+
+    while (listIndents.length > 0) {
+      const top = listIndents[listIndents.length - 1]
+      if (top !== undefined && indent < top) {
+        listIndents.pop()
+      } else {
+        break
+      }
+    }
+    const activeIndent = listIndents[listIndents.length - 1] ?? 0
+
+    if (canStartIndentedCode && indent >= activeIndent + 4) {
+      if (INLINE_OR_DISPLAY_MATH_RE.test(stripped)) {
+        hits.push({ line: lineno, indent })
+      }
+      canStartIndentedCode = true
+      continue
+    }
+
+    const rel = expanded.slice(activeIndent)
+    const mFence = FENCE_OPEN_RE.exec(rel)
+    if (mFence?.[1]) {
+      const marker = mFence[1]
+      const restFence = rel.slice(mFence[0].length)
+      const markerChar = marker[0]
+      if (markerChar && (markerChar === '~' || !restFence.includes('`'))) {
+        fenceChar = markerChar
+        fenceLen = marker.length
+        fenceContainer = activeIndent
+        continue
+      }
+    }
+
+    if (stripped.startsWith('$$')) {
+      const restMath = stripped.slice(2)
+      if (UNESCAPED_DOUBLE_DOLLAR_RE.test(restMath)) {
+        inMath = false
+        canStartIndentedCode = true
+      } else {
+        inMath = true
+      }
+      continue
+    }
+
+    const mList = LIST_MARKER_RE.exec(expanded)
+    if (mList?.[1] !== undefined && mList[2] !== undefined) {
+      const markerEnd = mList[1].length + mList[2].length
+      const top = listIndents[listIndents.length - 1]
+      if (top === undefined || markerEnd > top) {
+        listIndents.push(markerEnd)
+      } else {
+        listIndents[listIndents.length - 1] = markerEnd
+      }
+      canStartIndentedCode = false
+      continue
+    }
+
+    if (
+      stripped === '>' ||
+      stripped.startsWith('#') ||
+      stripped.startsWith('---') ||
+      stripped.startsWith('***') ||
+      stripped.startsWith('___') ||
+      stripped.startsWith('|')
+    ) {
+      canStartIndentedCode = true
+    } else {
+      canStartIndentedCode = false
+    }
+  }
+
+  return hits
 }
 
 export function parseBlueprintMarkdown(
@@ -668,6 +809,17 @@ export class BlueprintStore {
         }
         if (prose.includes('！')) {
           warnings.push(`${matchedFile} 正文含禁用全角感叹号。`)
+        }
+        const indentedMath = findIndentedMathLines(mdText)
+        if (indentedMath.length > 0) {
+          const sample = indentedMath
+            .slice(0, 3)
+            .map((h) => `第 ${h.line} 行(${h.indent} 空格)`)
+            .join('、')
+          const more = indentedMath.length > 3 ? ` 等 ${indentedMath.length} 处` : ''
+          warnings.push(
+            `${matchedFile} 存在会被 Markdown 误判为缩进代码块的含公式缩进行（${sample}${more}），请将重载步骤改用 ### 三级小标题并令公式及说明段顶格。`,
+          )
         }
         const bodyProse = stripCodeBlocks(mdText.replace(FIRST_H1_RE, ''))
         const refHits = [...new Set([...bodyProse.matchAll(SOURCE_REF_RE)].map((m) => m[0].trim()))]
