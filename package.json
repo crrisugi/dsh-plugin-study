@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-study",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "STEM & technical guided-study plugin for DeepSeek Harness — diagnostic probes, 10 orthogonal scratchpad derivations, controlled Matplotlib/SVG vector plotting, and a live right-sidebar blueprint drawer.",
   "author": "crrisugi",
   "license": "MIT",

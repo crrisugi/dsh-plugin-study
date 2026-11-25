@@ -2,6 +2,15 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.9] - 2026-11-25
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.2.9`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint` 与右侧抽屉联动）：
+  - 符号保原与前置补讲规范：明确非同式写不开时不擅自改添下标、英文缩写上下标与多字母缩略记号首次出场须写全英文原词与中文含义；厘清原书略过前置的“直接引用”与“拆开补讲”分界并支持联网核实；正卡成段补讲前置须用 `前置铺垫：…` 隔开且补完切回目标正卡免重测、补讲均讲到接通正卡即收手；同步对齐 `assets/workflows/{archiving,long-corpus}.md` 的先修切面免测边界及速通节选“从零搭桥”单发调档题。
+  - 倒数域原域尺度先行与前提校准：`assets/references/transform-phasor.md` 第 2 节拆清“原域尺度先行（倒数域变量与原域尺度联立约束时先回同量纲原域立画面并按需举原域小例，再取倒数翻回）”与“单向切域核对（限定于解微分或卷积方程）”，并在主干对照表轻提；顺带为 `assets/references/discrete-state.md` 补齐“讲解算法优化且存在可对照的朴素解法”前提。
+  - 多步搭桥逐段落地与边界临界分段：`assets/skills/study/SKILL.md` 第二步将“兑现符号与选答”与“逐段兑现搭桥”拆短单列，要求“从零搭桥”含多步链条时须用易心算小例逐段搭通至临界分界与分支跳转；第三步放宽同算例调临界参数对比限制，并新增全理工通用的“边界临界分段”（并列边界来源与约束范围 $\to$ 判明主导限制与受截断物理量/定义域并按需配易心算对照 $\to$ 按主导边界分段、明确临界等号归属并如实命名分段）。
+  - 全套规程与插件文案专业化措辞统一清理：清除 `assets/skills/study/SKILL.md`、4 份 `assets/workflows/*.md`、10 份 `assets/references/*.md` 与 `src/tools.ts` / `README.md` 中的口语俗词与比喻表达，统一对齐 `teaching-style.md` 的清朗现代书面语风格。
+
 ## [0.2.8] - 2026-11-25
 
 ### Changed

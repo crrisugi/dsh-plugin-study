@@ -389,7 +389,7 @@ export function createStudyTools(opts: {
       coreProblem: {
         type: 'string',
         required: true,
-        description: '两三句白话概括的核心问题。',
+        description: '两三句简明概括的核心问题。',
       },
       toyExampleRange: {
         type: 'string',
