@@ -237,7 +237,7 @@ export function createStudyTools(opts: {
       svgPath: {
         type: 'string',
         description:
-          '工作区相对保存路径（如 ./学习伴学/傅里叶光学/assets/卡01_相量.svg）。靶向直答或纯会话伴读可省略以存入临时目录。',
+          '工作区相对保存路径（仅确认落盘时使用，如 ./学习伴学/傅里叶光学/assets/卡01_相量.svg）。讲卡展示、靶向直答与纯会话伴读省略以存入临时目录。',
       },
       caption: {
         type: 'string',
@@ -431,7 +431,7 @@ export function createStudyTools(opts: {
             },
             archivedName: {
               type: 'string',
-              description: '已归档落盘的笔记文件名（如 "卡01_空间脉冲响应.md"，未归档时省略）',
+              description: '已归档落盘的笔记文件名（如 "卡01_空间脉冲响应.md"，跳过存盘或未归档时省略）',
             },
           },
         },

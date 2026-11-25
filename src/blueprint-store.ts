@@ -92,6 +92,8 @@ const PREREQ_NEW_RE = /^(\d+)(?:\.([1-9]\d*))?_0\.([1-9]\d*)$/
 const PREREQ_OLD_UNDER_RE = /^(\d+)(?:\.([1-9]\d*))?_0$/
 const PREREQ_OLD_DOT_RE = /^(\d+)\.0(?:([A-Za-z])|\.(\d+))?$/
 const MAIN_CARD_RE = /^(\d+)(?:\.([1-9]\d*))?$/
+const RECAP_HEADING_RE = /^##\s+.*已学主线/
+const RECAP_ENTRY_CARD_RE = new RegExp(`^\\s*(?:[-*+]|\\d+[.)])\\s*\\**卡\\s*(${CARD_ID_BODY_SRC})(?![\\d.A-Za-z_])`)
 
 function isSupportedImageFile(name: string): boolean {
   const ext = path.extname(name).toLowerCase()
@@ -186,6 +188,32 @@ function findArchivedFileForCard(cardId: string, archivedFiles: readonly string[
   const targetToken = extractCardTokenFromId(cardId)
   if (!targetToken) return undefined
   return archivedFiles.find((f) => extractCardTokenFromFileName(f) === targetToken)
+}
+
+function parseSkippedCardTokens(markdown: string): Set<string> {
+  const skipped = new Set<string>()
+  const lines = markdown.split(/\r?\n/)
+  let inRecap = false
+  for (const line of lines) {
+    const stripped = line.trim()
+    if (!inRecap) {
+      if (RECAP_HEADING_RE.test(stripped)) {
+        inRecap = true
+      }
+      continue
+    }
+    if (/^##\s+\S/.test(stripped)) {
+      break
+    }
+    if (!stripped.includes('未落盘')) {
+      continue
+    }
+    const m = RECAP_ENTRY_CARD_RE.exec(line)
+    if (m?.[1]) {
+      skipped.add(normalizeCardToken(m[1]))
+    }
+  }
+  return skipped
 }
 
 function stripCodeBlocks(markdown: string): string {
@@ -348,6 +376,7 @@ export function parseBlueprintMarkdown(
   let toyExampleRange = ''
   let toyExampleValues = ''
   const cards: BlueprintCardItem[] = []
+  const skippedTokens = parseSkippedCardTokens(markdown)
 
   const h1 = lines.find((l) => l.startsWith('# '))
   if (h1) {
@@ -384,13 +413,15 @@ export function parseBlueprintMarkdown(
         const isCore = /核心/.test(rawTitle)
         const totalCardArchived = opts.archivedFiles.find((f) => f.startsWith('01_全篇脉络总卡'))
         const matchedFile = findArchivedFileForCard(id, opts.archivedFiles)
+        const token = extractCardTokenFromId(id)
+        const isSkipped = token !== null && skippedTokens.has(token)
         const resolvedArchive = matchedFile ?? totalCardArchived
         cards.push({
           id,
           title: rawTitle,
           summary,
           isCore,
-          status: resolvedArchive ? 'done' : 'pending',
+          status: resolvedArchive || isSkipped ? 'done' : 'pending',
           ...(resolvedArchive ? { archivedName: resolvedArchive } : {}),
         })
       }
@@ -743,8 +774,10 @@ export class BlueprintStore {
     }
 
     const bpPath = path.join(safe.absDir, '00_伴学脉络蓝图.md')
+    let skippedTokens = new Set<string>()
     try {
       const rawBp = await fs.readFile(bpPath, 'utf-8')
+      skippedTokens = parseSkippedCardTokens(rawBp)
       const parsed = parseBlueprintMarkdown(rawBp, {
         key: `ws:${safe.relPosix}`,
         fallbackTopic: path.basename(safe.absDir),
@@ -773,6 +806,7 @@ export class BlueprintStore {
 
     for (const card of opts.cards) {
       if (card.status !== 'done') continue
+      const token = extractCardTokenFromId(card.id)
       const matchedFile = card.archivedName
         ? archivedMdFiles.includes(card.archivedName)
           ? card.archivedName
@@ -780,6 +814,9 @@ export class BlueprintStore {
         : findArchivedFileForCard(card.id, archivedMdFiles) ?? totalCard
 
       if (!matchedFile) {
+        if (!card.archivedName && token !== null && skippedTokens.has(token)) {
+          continue
+        }
         warnings.push(`卡片 ${card.id} 已标为 done，但目录 ${safe.relPosix} 下未找到对应归档 .md 文件。`)
         continue
       }

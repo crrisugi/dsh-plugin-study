@@ -2,6 +2,14 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.8] - 2026-11-25
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.2.8`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint` 与右侧抽屉联动）：第二轮发首卡摸底题前先在正文开头亮出初拟分卡路线并注明摸底后定稿，收齐摸底后再写入 `00_伴学脉络蓝图.md` 与刷新抽屉。
+- 废止单篇合存 `01_全篇脉络总卡.md` 并删除 `assets/workflows/long-corpus.md` 重复条目：单篇与长卷全面统一为逐卡按需落盘（`直觉速通` 存轻量短卡、`标准推演 / 深度精读` 存完整讲义卡），兼容混搭核心卡临时升档。
+- 统一各档整卡末尾选择权与配图延迟入库：写目录模式下非末卡提供“落盘 / 落盘并继续 / 继续（跳过本卡存盘）”、末卡提供“落盘 / 继续（跳过存盘结课）”；`assets/workflows/plotting.md`、`archiving.md` 与 `study_render_plot` 明确讲卡阶段配图先存临时目录，确认落盘该卡后再写入工作区 `assets/`。
+- 右侧抽屉与盘面校验同步升级：取消 `src/client/tab.tsx` 快捷复制按钮对 `直觉速通` 的限制，改为所有档位 `active` 卡均提供「落盘并继续 / 落盘 / 继续」快捷复制；`src/blueprint-store.ts` 与 `assets/python/check_notes.py` 支持解析蓝图 `## 三、已学主线与阶段收获` 的 `（未落盘）` 标记以标记 `done` 且免报缺文件告警，并在 `tests/plugin.test.ts` 补齐单测。
+
 ## [0.2.7] - 2026-11-23
 
 ### Changed

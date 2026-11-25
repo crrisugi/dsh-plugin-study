@@ -440,6 +440,64 @@ describe('study tools', () => {
       await fs.rm(tmpDir, { recursive: true, force: true })
     }
   })
+
+  it('recognizes skipped cards marked as 未落盘 in blueprint recap without missing-file warnings', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dsh-skipped-card-'))
+    try {
+      const notesDir = path.join(tmpDir, '学习伴学', '跳过存盘')
+      await fs.mkdir(notesDir, { recursive: true })
+      const bpContent = [
+        '# 00｜学习脉络：跳过存盘测试',
+        '',
+        '> **学习材料**：test.pdf ｜ **默认深度**：直觉速通',
+        '',
+        '## 二、卡片学习顺序',
+        '| 顺序 | 卡片主题 | 这一步主要搞懂什么 |',
+        '| :--- | :--- | :--- |',
+        '| 卡 01 | 核心直觉 | 建立直观理解 |',
+        '| 卡 02 | 进阶推导 | 核对关键公式 |',
+        '',
+        '## 三、已学主线与阶段收获',
+        '1. **卡 01（核心直觉）**：先立清基本直觉并给卡 02 铺垫。（未落盘）',
+        '',
+      ].join('\n')
+      await fs.writeFile(path.join(notesDir, '00_伴学脉络蓝图.md'), bpContent, 'utf-8')
+
+      const store = new BlueprintStore()
+      const list = await store.listBlueprints({ cwd: tmpDir })
+      expect(list).toHaveLength(1)
+      expect(list[0]?.cards[0]).toMatchObject({ id: '卡 01', status: 'done' })
+      expect(list[0]?.cards[0]?.archivedName).toBeUndefined()
+      expect(list[0]?.cards[1]).toMatchObject({ id: '卡 02', status: 'active' })
+
+      const tools = createStudyTools({
+        store,
+        getWorkingDirectory: () => ({ ensure: async () => tmpDir }),
+      })
+      const syncTool = tools.find((t) => t.name === 'study_sync_blueprint')!
+
+      const resSkippedOk = (await syncTool.execute(
+        {
+          topicTitle: '跳过存盘测试',
+          notesDir: './学习伴学/跳过存盘',
+          depthMode: '直觉速通',
+          coreProblem: '核对未落盘卡放行与缺卡告警',
+          currentCardId: '',
+          cards: [
+            { id: '卡 01', title: '核心直觉', summary: '建立直观理解', status: 'done' },
+            { id: '卡 02', title: '进阶推导', summary: '核对关键公式', status: 'done' },
+          ],
+        },
+        { agent: { id: 's-skip' } } as never,
+      )) as { warnings?: string[] }
+
+      expect(resSkippedOk.warnings).toHaveLength(1)
+      expect(resSkippedOk.warnings?.[0]).toContain('卡 02')
+      expect(resSkippedOk.warnings?.[0]).not.toContain('卡 01')
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('update checker & overview passthrough', () => {
