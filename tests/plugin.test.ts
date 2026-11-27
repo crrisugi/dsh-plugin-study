@@ -222,6 +222,7 @@ describe('study tools', () => {
         expect(res.content).toContain('## 4.')
       }
 
+      expect(WORKFLOW_TOPICS).toContain('probing')
       expect(WORKFLOW_TOPICS).toContain('teaching-style')
       for (const workflow of WORKFLOW_TOPICS) {
         const res = (await workflowTool.execute({ workflow }, { agent: { id: 's1' } } as never)) as { content: string }

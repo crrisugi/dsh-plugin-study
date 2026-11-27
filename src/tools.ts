@@ -187,13 +187,13 @@ export function createStudyTools(opts: {
   const readWorkflowTool = defineTool({
     name: 'study_read_workflow',
     description:
-      '按需读取内置的 4 份伴学专项流程细则：long-corpus（百页长卷总图）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）、teaching-style（清朗书面讲义语言风格卡）。',
+      '按需读取内置的 5 份伴学专项流程细则：long-corpus（百页长卷总图）、probing（符号快筛、摸底设题与兑现细则）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）、teaching-style（清朗书面讲义语言风格卡）。',
     parameters: {
       workflow: {
         type: 'string',
         enum: [...WORKFLOW_TOPICS],
         required: true,
-        description: '流程文件名（不含 .md 后缀）：long-corpus、plotting、archiving 或 teaching-style。',
+        description: '流程文件名（不含 .md 后缀）：long-corpus、probing、plotting、archiving 或 teaching-style。',
       },
     },
     output: {

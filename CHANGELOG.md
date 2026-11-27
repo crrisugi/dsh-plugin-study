@@ -2,6 +2,18 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.3.0] - 2026-11-27
+
+### Added
+- 新增按需专项规程 `assets/workflows/probing.md`（保留 `study_read_workflow` 与右侧抽屉同步适配），并在 `src/contract.ts`（`WORKFLOW_TOPICS`）、`src/tools.ts`（`study_read_workflow` 描述与枚举）及 `tests/plugin.test.ts` 中正式注册与单测覆盖。
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.3.0`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint`、`[前置核对]`、`probeStatus/probeReason` 与右侧抽屉联动）：
+  - 主干第二步摸底细则下沉至 `assets/workflows/probing.md`，主干仅留硬触发门禁与回查入口；第三步第 2 节原地整编为 `4` 个时序小组并拆短超长行。
+  - 扩准 `长式分块圈引` 至嵌套/连乘与跨卡首次拼合复合长式（出场交代来源并分块）；`引用直写算式` 新增并列相似长式或平行路径写全后紧跟 `1~2` 句纯文字结构锚定（不画开头表、不剧透优劣），收准不插“无关的”跨节旁支对比并防止文末结论对照复读开头结构辨认。
+  - 彻底废止 `k-A / k-B` 分步强合并轨，厚卡、超 `4` 底座与讲卡中途过载统一拆为 `k.1 / k.2` 独立子卡并同步刷新蓝图与抽屉；`assets/workflows/archiving.md` 移除 `k-A / k-B` 合并条款并明确保留正文结构锚定。
+  - 同步合入题干/正文未学操作词白话界定、跨越新表征形态选“从零搭桥”补测与先修分流收紧，以及 `正卡前置起手` 困局说明，并更新 `README.md` 与 `package.json`。
+
 ## [0.2.10] - 2026-11-27
 
 ### Changed
