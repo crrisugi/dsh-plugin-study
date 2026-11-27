@@ -2,6 +2,12 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.4.1] - 2026-11-27
+
+### Changed
+- 同步内置 `assets/python/{plot_helper.py, check_notes.py}` 至 `v0.4.1`（对齐纯路径安全导入更新检查钩子）。
+- 将 `vitest.config.ts` 全局 `testTimeout` 提升至 `15000ms`，消除 `windows-latest` CI Runner 上连续拉起 Python `check_svg.py` 子进程的冷启动超时抖动。
+
 ## [0.4.0] - 2026-11-27
 
 ### Changed
