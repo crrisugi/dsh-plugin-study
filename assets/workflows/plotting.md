@@ -7,20 +7,20 @@
 ## 一、配图来源与分工
 
 - **原件已有清晰图示**：现成独立图片直接复制一份，不挪动原件；嵌在整页或 PDF 中的清晰图能干净裁出就截取并裁掉图外原书图注行；截不出或清晰度不足，或仅是简单框图与曲线且图内夹杂杂乱旧编号与水印时，按原图逻辑与结构调用 `study_render_plot` 用 `.svg` 重画。
-- **曲线、谱图、热力图与几何矢量**：调用 `study_render_plot` 传入 `plotCode` 导出精简 `.svg`。
-- **代码分支、状态跳变、模块时序与维度流向**：调用 `study_render_plot` 传入 `rawSvg` 导出并自动跑快检。
+- **曲线、谱图、热力图、几何矢量与公式框图**：曲线、谱图、热力图、几何矢量，以及内含分式、导数、积分、求和、矩阵元、转置或多重上下标的结构与流向框图，均调用 `study_render_plot` 传入 `plotCode` 导出精简 `.svg`。
+- **纯文字与简单符号框图**：以中文、代码短词、箭头及零星单个字母、简单下标或维度标记为主的流程、状态、时序与维度框图，调用 `study_render_plot` 传入 `rawSvg` 导出并自动跑快检。
 
 ---
 
-## 二、曲线与谱图施工清单
+## 二、Python 绘图施工清单
 
-1. **内置底座接口**：`study_render_plot` 沙箱已预导入 `numpy as np`、`matplotlib.pyplot as plt`、`plot_helper as ph`；内置 `COLORS`、`BWR_CMAP`、`SEQ_CMAP`、`new_fig()`、`new_subplots(r,c)`、`new_3d_fig()`、`vec2d`、`vec3d_drop`、`heatmap`、`note_box`、`label_point`；末尾将画布赋给 `fig` 即自动文字转曲导出精简 `.svg`。
+1. **内置底座接口**：`study_render_plot` 沙箱已预导入 `numpy as np`、`matplotlib.pyplot as plt`、`plot_helper as ph`；内置 `COLORS`、`BWR_CMAP`、`SEQ_CMAP`、`new_fig()`、`new_subplots(r,c)`、`new_3d_fig()`、`new_diagram()`、`vec2d`、`vec3d_drop`、`draw_box`、`flow_arrow`、`heatmap`、`note_box`、`label_point`；画公式框图优先横向展开或压在 `2~3` 层内、框内只放关键式子与短标签，上下标用 `$...$`、中文放 `$...$` 外且不用 `\mathcal` 与 `\begin{...}`，末尾将画布赋给 `fig` 即自动文字转曲导出精简 `.svg`。
 2. **脚本按需出表**：看形状趋势的图直接在图上标清关键点，正文不强制附数值小表；仅当正文确需读准数值做对比时，才在 `plotCode` 里顺手 `print` 出特征点填表，保证表图一致；缺 `uv` 时直接提示用户先安装 `uv`。
 3. **看返回不看图**：工具返回 `[plot_helper 自检提示]` 碰撞、图例或配色提醒时，调坐标或精简文案重跑，默认不读图检查。
 
 ---
 
-## 三、流向与状态图施工清单
+## 三、手写 SVG 施工清单
 
 1. **规范手写源码**：手写 `<svg>` 传给 `study_render_plot` 的 `rawSvg` 参数，须写全 4 数值 `viewBox`，源码首行自带柔和浅底圆角 `<rect>`（如 `#f4f6f8`），配浅色高亮、黑体字与带箭头连线；等价对象保持同线型，虚线只作边界或辅助；图内文字不写裸 LaTeX 源码。
 2. **自动快检修正**：工具自动清洗危险标签并调用内置 `check_svg.py` 检查穿字、重叠、越界、浅底、主色系与原件式号/章节索引；若返回快检提醒，按提示修完再重跑展示。

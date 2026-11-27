@@ -10,7 +10,7 @@
 2. **四项受控工具接管按需规范、沙箱绘图与抽屉同步**：
    - `study_read_reference`：从插件包内按需读取 10 份正交草稿纸表征规范，保持工具 Schema 静态不变以维持 DeepSeek KV Cache 命中率；
    - `study_read_workflow`：按需加载 `long-corpus`（百页长卷总图）、`plotting`（原件图示搬运与绘图施工）、`archiving`（自然讲义落盘与骨架示例）与 `teaching-style`（清朗书面讲义语言风格卡）四份专项规程，为主干节省上下文；
-   - `study_render_plot`：在隔离临时沙箱调用内置 `plot_helper.py`（经 `uv run`，支持文字转曲、防撞体检与特征点小表按需透传）或清洗手写圆角 `<svg>` 并自动经 `check_svg.py` 体检，导出精简 `.svg` 返回标准 Markdown `![图注](路径)` 原位渲染（免除终端审批弹窗）；
+   - `study_render_plot`：在隔离临时沙箱调用内置 `plot_helper.py`（经 `uv run`，支持曲线/热力图/几何矢量、含复杂公式的结构框图、文字转曲与防撞体检）或清洗纯文字/简单符号圆角 `<svg>` 并自动经 `check_svg.py` 体检，导出精简 `.svg` 返回标准 Markdown `![图注](路径)` 原位渲染（免除终端审批弹窗）；
    - `study_sync_blueprint`：实时同步会话蓝图与进度（支持 `卡 02_0.1` 先修卡与 `卡 01.1` 子卡编号），并顺带执行磁盘配图实存（兼容 `.svg / .png / .jpg / .webp`）与正文原件索引自检。
 3. **Web UI 右侧栏「伴学脉络」抽屉（`./client`）**：
    - 实时同步当前会话蓝图（支持自定义工作区相对笔记目录 `notesDir`）并自动扫描 `./学习伴学/*/00_伴学脉络蓝图.md` 与 `./学习笔记/*/00_伴学脉络蓝图.md`；

@@ -2,6 +2,14 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.2.10] - 2026-11-27
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.2.10`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint` 与右侧栏抽屉联动）：
+  - 细化绘图分工与规程标题：`assets/workflows/plotting.md` 按公式复杂度划界，含分式、导数、积分、求和、矩阵元、转置或多重上下标的结构流向框图改走 `study_render_plot`（`plotCode` / `plot_helper.py`），纯文字/代码短词与简单符号流程状态图继续走 `rawSvg` + `check_svg.py`，并将二三节标题改为按工具命名；同步移除 `5` 份 `assets/references/*.md`（`tensor-array`、`conservation-network`、`probability-stochastic`、`proof-logic`、`discrete-state`）中框图描述的“手写 `<svg>`”限定。
+  - 升级内置 `assets/python/plot_helper.py`：新增 `new_diagram`、`draw_box`（自适应或固定分格）、`flow_arrow`（自动贴边并带白底短标），导出前拦截 `$...$` 内 `\begin{...}` 与中文及原件式号/章节索引，并补全矩形框（`ax.patches` 与文字 `bbox`）主色聚类（`<= 3` 色）与固定框撑破体检。
+  - 更新 `src/tools.ts` 中 `study_render_plot` 工具描述与 `[plot_helper 自检提示]` 解析逻辑（修复整行含前缀被过滤的告警丢失问题），并同步更新 `README.md`。
+
 ## [0.2.9] - 2026-11-25
 
 ### Changed

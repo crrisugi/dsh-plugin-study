@@ -228,11 +228,11 @@ export function createStudyTools(opts: {
       plotCode: {
         type: 'string',
         description:
-          'Python 绘图代码（已预导入 numpy as np、matplotlib.pyplot as plt、plot_helper as ph；将最终画布赋给变量 fig 即可自动导出）。与 rawSvg 二选一。',
+          'Python 绘图代码（用于曲线、谱图、热力图、几何矢量及含分式/导数/矩阵等复杂公式的结构框图；已预导入 numpy as np、matplotlib.pyplot as plt、plot_helper as ph；将最终画布赋给变量 fig 即可自动导出）。与 rawSvg 二选一。',
       },
       rawSvg: {
         type: 'string',
-        description: '用于代码分支、指针重连或模块时序的柔和浅底圆角 <svg>...</svg> 矢量源码。与 plotCode 二选一。',
+        description: '用于中文、代码短词与简单符号为主的流程、状态或时序框图的柔和浅底圆角 <svg>...</svg> 矢量源码（含复杂公式请改走 plotCode）。与 plotCode 二选一。',
       },
       svgPath: {
         type: 'string',
@@ -331,8 +331,14 @@ export function createStudyTools(opts: {
           if (res.stderr.includes('[plot_helper 自检提示]')) {
             warnings = res.stderr
               .split(/\r?\n/)
-              .map((line) => line.replace(/^-\s*/, '').trim())
-              .filter((line) => line.length > 0 && !line.includes('[plot_helper 自检提示]'))
+              .filter((line) => line.includes('[plot_helper 自检提示]'))
+              .flatMap((line) =>
+                line
+                  .replace(/^.*\[plot_helper 自检提示\]\s*/, '')
+                  .split('；')
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              )
           }
           finalSvg = await fs.readFile(tmpSvg, 'utf-8')
         } finally {
