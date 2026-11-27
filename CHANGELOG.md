@@ -2,6 +2,16 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.4.0] - 2026-11-27
+
+### Changed
+- 全量对齐 `study` 伴学规程至 `v0.4.0`（完整保留 `study_read_reference`、`study_read_workflow`、`study_render_plot`、`study_sync_blueprint`、`[前置核对]`、`probeStatus/probeReason` 与右侧抽屉联动）：
+  - **执行时序顺排与直答存盘出口**：将全局交互提问边界上提至总纲（讲义末禁弹、单题宿主分步逐题发问）；为`靶向直答`补齐 `study_read_workflow("teaching-style")` 与 `plotting.md` 入口并明确临时存盘存为独立单篇 `[概念名称].md`（不编卡号、不建蓝图）；顺排主干第一/三/四步与 `probing`、`long-corpus`、`plotting` 内部条目并移入《卡壳换路拆解》至讲后末节。
+  - **正向双阶递进摸底与承重分流**：撤除把待拼合复合式端上题干考心算与“跨新表征一律补测插先修”死规则，改按“承重机制 vs 过桥闭式件”二分免测与先修；同主干拆为一题一弯原子单步（超 `4` 题分批问清），首次嵌套拼合时对已熟单步追 `1~2` 道给清前步结果的组合接口预热；显式界定轻档/重档对应关系，摸底收齐遇重负荷开讲前拆 `k.1 / k.2`（`k.2` 免重测），子卡半途再拆顺移后续同层子卡号；大断层移除宏观导读伪分支，补齐无蓝图先修存盘与纯会话免写盘衔接。
+  - **跨表征过桥三拍与共性回主干**：同一算式深度交织不强拆，跨表征切换或交接走“点破新约束与失真 → 同一对象记号对译 → 同量纲直观原尺度立判据”过桥三拍；主干回收算子哑元/外参切分、直观原尺度比严宽与避巧合选数共性，`assets/references/numerical-precision.md` 新增《采样步长与窗宽》边界，`assets/references/transform-phasor.md` 新增宽窄缩放反比双色成对包络对照图并精简重复。
+  - **构型先行、树状路标与原位分块**：空间构型/演化长链推导进入长算式前先立定性画面；消除 `assets/workflows/archiving.md` 单线尾接硬编码，开篇与蓝图主线点明上游母式及分支演进性质（多支线按需配树状框图），合并消解平行路径锚定与 `4` 条防生词碎规则并明确正文已讲透的摸底易混点不再末尾复读；核心母式与闭式解首次定型支持正文 `$$` 内单层 `\underbrace` 原位标角色；清理《边界临界分段》单题函数名外壳。
+  - **反馈诊断去处方锚定**：`assets/skills/study-feedback/SKILL.md` 反转 `期望机制` 为描述学习体验视角（保留 `crrisugi/dsh-plugin-study` 提交目标）。
+
 ## [0.3.0] - 2026-11-27
 
 ### Added
