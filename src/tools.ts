@@ -6,11 +6,9 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { BlueprintStore } from './blueprint-store.js'
 import {
-  REFERENCE_TOPICS,
   WORKFLOW_TOPICS,
   type CardStatus,
   type ProbeStatus,
-  type ReferenceTopic,
   type WorkflowTopic,
 } from './contract.js'
 import { resolveAssetsDir } from './skills.js'
@@ -145,55 +143,19 @@ export function createStudyTools(opts: {
   getWorkingDirectory?: (() => WorkingDirectoryServiceLike | undefined) | undefined
 }): ToolDefinition[] {
   const assetsDir = resolveAssetsDir()
-  const refsDir = path.join(assetsDir, 'references')
   const workflowsDir = path.join(assetsDir, 'workflows')
   const pyProjectDir = path.join(assetsDir, 'python')
-
-  const readReferenceTool = defineTool({
-    name: 'study_read_reference',
-    description:
-      '按需读取内置的 10 份理工伴学草稿纸表征规范（单张伴学卡默认读 1 份，跨表征时最多组合读 2 份）。',
-    parameters: {
-      topic: {
-        type: 'string',
-        enum: [...REFERENCE_TOPICS],
-        required: true,
-        description: '表征文件名（不含 .md 后缀），如 continuous-operator、tensor-array 等。',
-      },
-    },
-    output: {
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          topic: { type: 'string', required: true },
-          content: { type: 'string', required: true },
-        },
-      },
-      render: (_args, value) => [{ type: 'text', text: value.content }],
-    },
-    isConcurrencySafe: () => true,
-    execute: async (args) => {
-      const topic = args.topic as ReferenceTopic
-      if (!REFERENCE_TOPICS.includes(topic)) {
-        throw new Error(`Unknown reference topic: ${String(args.topic)}`)
-      }
-      const refPath = path.join(refsDir, `${topic}.md`)
-      const content = await fs.readFile(refPath, 'utf-8')
-      return { topic, content }
-    },
-  })
 
   const readWorkflowTool = defineTool({
     name: 'study_read_workflow',
     description:
-      '按需读取内置的 5 份伴学专项流程细则：long-corpus（百页长卷总图）、probing（符号快筛、摸底设题与兑现细则）、plotting（原图搬运与绘图快检）、archiving（自然讲义落盘与骨架示例）、teaching-style（清朗书面讲义语言风格卡）。',
+      '按需读取内置的 3 份伴学专项流程细则：long-corpus（百页长卷总图）、plotting（对口图型选型、原图搬运与绘图快检）、archiving（自然讲义落盘与双模板）。',
     parameters: {
       workflow: {
         type: 'string',
         enum: [...WORKFLOW_TOPICS],
         required: true,
-        description: '流程文件名（不含 .md 后缀）：long-corpus、probing、plotting、archiving 或 teaching-style。',
+        description: '流程文件名（不含 .md 后缀）：long-corpus、plotting 或 archiving。',
       },
     },
     output: {
@@ -256,7 +218,7 @@ export function createStudyTools(opts: {
           warnings: {
             type: 'array',
             items: { type: 'string' },
-            description: 'plot_helper 或 check_svg.py 返回的布局碰撞、配色与原件索引自检提醒。',
+            description: 'plot_helper 或 check_svg.py 返回的布局碰撞与配色自检提醒。',
           },
         },
       },
@@ -517,7 +479,7 @@ export function createStudyTools(opts: {
     },
   })
 
-  return [readReferenceTool, readWorkflowTool, renderPlotTool, syncBlueprintTool]
+  return [readWorkflowTool, renderPlotTool, syncBlueprintTool]
 }
 
 export function registerStudyTools(

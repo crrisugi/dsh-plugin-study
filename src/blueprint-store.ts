@@ -70,19 +70,7 @@ const FENCE_OPEN_RE = /^[ ]{0,3}(`{3,}|~{3,})/
 const LIST_MARKER_RE = /^([ ]*)((?:[-*+]|\d{1,9}[.)])[ ]+)/
 const INLINE_OR_DISPLAY_MATH_RE = /(?<!\\)\$\$|(?<!\\)\$[^$\n]+(?<!\\)\$/
 const UNESCAPED_DOUBLE_DOLLAR_RE = /(?<!\\)\$\$/
-const FIRST_H1_RE = /^\s*#\s+[^\n]*\n?/
 const COLOR_CODE_RE = /(?:\\textcolor\b|\\color\s*\{|<span\b[^>]*\bcolor\s*:)/i
-const SOURCE_REF_RE = new RegExp(
-  '(?:' +
-    '(?<![形模方通算列简格款])式\\s*(?:[(（]\\s*\\d+(?:[.\\-]\\d+)*\\s*[)）]|\\d+(?:[.\\-]\\d+)+)' +
-    '|(?<![A-Za-z0-9_])(?:Eqs?\\.?)\\s*(?:[(（]\\s*\\d+(?:[.\\-]\\d+)*\\s*[)）]|\\d+(?:[.\\-]\\d+)*)(?![A-Za-z0-9_])' +
-    '|(?:详见|参见|见|参考|参照)\\s*(?:原书|原文|原件|教材|上文|前文|后文)?\\s*(?:第\\s*\\d+(?:\\.\\d+)*\\s*[章节页行]|\\d+(?:\\.\\d+)+\\s*[章节]|附录|补充推导)' +
-    '|(?:原书|原文|原件)\\s*(?:第\\s*\\d+(?:\\.\\d+)*\\s*[章节页]|\\d+(?:\\.\\d+)+\\s*[章节]|附录|补充推导)' +
-    '|(?<![A-Za-z0-9_])(?:Section|Sec\\.|Appendix|App\\.)\\s*(?:\\d+(?:\\.\\d+)*|[A-Z](?:\\.\\d+)?)(?![A-Za-z0-9_])' +
-    '|(?:由|据|按|根据|见)\\s*(?:原书|原文|原件)?\\s*(?:引理|定理|推论|命题)\\s*\\d+(?:[.\\-]\\d+)*' +
-    ')',
-  'gi',
-)
 
 const CARD_ID_BODY_SRC =
   '[0-9]+(?:\\.[1-9][0-9]*)?_0(?:\\.[1-9][0-9]*)?|[0-9]+(?:\\.0(?:[A-Za-z]|\\.[0-9]+)?|\\.[1-9][0-9]*)?'
@@ -801,7 +789,6 @@ export class BlueprintStore {
     }
 
     const archivedMdFiles = dirFiles.filter((f) => f.endsWith('.md') && f !== '00_伴学脉络蓝图.md' && isSafeSingleSegment(f))
-    const totalCard = archivedMdFiles.find((f) => f.startsWith('01_全篇脉络总卡'))
     const checkedFiles = new Set<string>()
 
     for (const card of opts.cards) {
@@ -811,7 +798,7 @@ export class BlueprintStore {
         ? archivedMdFiles.includes(card.archivedName)
           ? card.archivedName
           : undefined
-        : findArchivedFileForCard(card.id, archivedMdFiles) ?? totalCard
+        : findArchivedFileForCard(card.id, archivedMdFiles)
 
       if (!matchedFile) {
         if (!card.archivedName && token !== null && skippedTokens.has(token)) {
@@ -844,9 +831,6 @@ export class BlueprintStore {
         if (COLOR_CODE_RE.test(prose)) {
           warnings.push(`${matchedFile} 正文含禁用公式或文字染色代码。`)
         }
-        if (prose.includes('！')) {
-          warnings.push(`${matchedFile} 正文含禁用全角感叹号。`)
-        }
         const indentedMath = findIndentedMathLines(mdText)
         if (indentedMath.length > 0) {
           const sample = indentedMath
@@ -855,15 +839,8 @@ export class BlueprintStore {
             .join('、')
           const more = indentedMath.length > 3 ? ` 等 ${indentedMath.length} 处` : ''
           warnings.push(
-            `${matchedFile} 存在会被 Markdown 误判为缩进代码块的含公式缩进行（${sample}${more}），请将重载步骤改用 ### 三级小标题并令公式及说明段顶格。`,
+            `${matchedFile} 存在会被 Markdown 误判为缩进代码块的含公式缩进行（${sample}${more}），请改用顶格段落或 ### 小标题。`,
           )
-        }
-        const bodyProse = stripCodeBlocks(mdText.replace(FIRST_H1_RE, ''))
-        const refHits = [...new Set([...bodyProse.matchAll(SOURCE_REF_RE)].map((m) => m[0].trim()))]
-        if (refHits.length > 0) {
-          const sample = refHits.slice(0, 3).join('、')
-          const more = refHits.length > 3 ? ` 等 ${refHits.length} 处` : ''
-          warnings.push(`${matchedFile} 正文疑似夹带原件式号或章节索引（${sample}${more}），建议改为直接写出算式或内容说明。`)
         }
       } catch {
         warnings.push(`无法读取已归档卡片 ${matchedFile}。`)

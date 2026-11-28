@@ -343,23 +343,23 @@ export function StudyBlueprintTab(props: StudyBlueprintTabProps): ReactNode {
                             <button
                               type="button"
                               className="dsh-study-btn dsh-study-btn-primary"
-                              onClick={() => void handleCopyPrompt(`${card.id}:archive-next`, '落盘并继续')}
-                            >
-                              {copiedKey === `${card.id}:archive-next` ? '已复制「落盘并继续」' : '复制「落盘并继续」'}
-                            </button>
-                            <button
-                              type="button"
-                              className="dsh-study-btn"
-                              onClick={() => void handleCopyPrompt(`${card.id}:archive`, '落盘')}
-                            >
-                              {copiedKey === `${card.id}:archive` ? '已复制「落盘」' : '复制「落盘」'}
-                            </button>
-                            <button
-                              type="button"
-                              className="dsh-study-btn"
                               onClick={() => void handleCopyPrompt(`${card.id}:next`, '继续')}
                             >
                               {copiedKey === `${card.id}:next` ? '已复制「继续」' : '复制「继续」'}
+                            </button>
+                            <button
+                              type="button"
+                              className="dsh-study-btn"
+                              onClick={() => void handleCopyPrompt(`${card.id}:archive`, '先落盘')}
+                            >
+                              {copiedKey === `${card.id}:archive` ? '已复制「先落盘」' : '复制「先落盘」'}
+                            </button>
+                            <button
+                              type="button"
+                              className="dsh-study-btn"
+                              onClick={() => void handleCopyPrompt(`${card.id}:skip`, '跳过存盘，继续')}
+                            >
+                              {copiedKey === `${card.id}:skip` ? '已复制「跳过存盘」' : '复制「跳过存盘，继续」'}
                             </button>
                           </>
                         ) : null}

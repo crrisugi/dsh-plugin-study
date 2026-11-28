@@ -2,6 +2,15 @@
 
 All notable changes to `dsh-plugin-study` will be documented in this file.
 
+## [0.5.0] - 2026-11-28
+
+### Changed
+- **全目录去过度规定性约束与 `16 → 4` 提示词架构收敛（保留 `study_read_workflow`、`study_render_plot`、`study_sync_blueprint` 与右侧栏抽屉联动）**：
+  - 彻底裁撤 `assets/references/*.md`（10 份四槽表征子文件）、`assets/workflows/{probing,teaching-style}.md` 及 `study_read_reference` 工具，剥离本科标准运算法则与钦定死数字；将跨学科通用推演防坑原则、单轮定性探针与现代书面讲义语感内聚至 `assets/skills/study/SKILL.md`（由 `127` 行精简至 `79` 行），高信噪比对口科学图型选型归位至 `assets/workflows/plotting.md`（`WORKFLOW_TOPICS` 收口为 `long-corpus / plotting / archiving` 三项），靶向直答与纯文字伴学实现零额外文件读取。
+  - **推演去量化配额与正向独立可读引用**：清退字数/行数/个数配额、“跨表征过桥三拍”与单层 `\underbrace` 强制优先；回调原件式号字面封杀为正向“独立可读引用”原则，同步移除 `src/blueprint-store.ts`、`check_svg.py`、`plot_helper.py`、`check_notes.py` 的原件式号正则拦截与全角感叹号告警。
+  - **单轮轻量探针、一站式开局与抽屉快捷按钮对齐**：压平多轮级联摸底为进卡按需 `0~1` 轮（`1~3` 题）定性微探针与跨层大断层安全阀；单篇开局合并为首轮一站式对齐；取消顶部蓝图刷屏复读与卡末三选一固定暗号，确认继续默认归档推进，右侧栏抽屉（`src/client/tab.tsx`）快捷复制按钮同步对齐为「继续 / 先落盘 / 跳过存盘，继续」。
+  - **绘图与校验脚本升级**：内置 `plot_helper.py` 与 `check_svg.py` 单图主色上限放宽至 `4` 色（对齐 `COLORS` 四主色循环）并修复已转曲 `\mathcal` 花体路径 ID 误判，`check_notes.py` 移除 `--recap` 与旧版先修/总卡兼容包袱；`assets/skills/study-feedback/SKILL.md` 升级为纯客观四要素高保真现场记录仪。
+
 ## [0.4.1] - 2026-11-27
 
 ### Changed

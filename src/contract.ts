@@ -1,19 +1,4 @@
-export const REFERENCE_TOPICS = [
-  'continuous-operator',
-  'spatial-geometry',
-  'transform-phasor',
-  'tensor-array',
-  'probability-stochastic',
-  'conservation-network',
-  'discrete-state',
-  'proof-logic',
-  'optimization-variational',
-  'numerical-precision',
-] as const
-
-export type ReferenceTopic = (typeof REFERENCE_TOPICS)[number]
-
-export const WORKFLOW_TOPICS = ['long-corpus', 'probing', 'plotting', 'archiving', 'teaching-style'] as const
+export const WORKFLOW_TOPICS = ['long-corpus', 'plotting', 'archiving'] as const
 
 export type WorkflowTopic = (typeof WORKFLOW_TOPICS)[number]
 

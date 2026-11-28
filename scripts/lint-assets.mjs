@@ -69,22 +69,10 @@ for (const [label, raw] of proseDocs) {
   }
 }
 
-const diskRefs = fs.readdirSync(REFS_DIR).filter((f) => f.endsWith('.md')).sort()
+const diskRefs = fs.existsSync(REFS_DIR) ? fs.readdirSync(REFS_DIR).filter((f) => f.endsWith('.md')).sort() : []
 const linkedRefs = [...new Set([...studyRaw.matchAll(/\(references\/([a-zA-Z0-9_-]+\.md)\)/g)].map((m) => m[1]))].sort()
-if (JSON.stringify(diskRefs) !== JSON.stringify(linkedRefs)) {
-  errors.push(`表征路由双向对齐失败: disk=${diskRefs.join(',')} vs linked=${linkedRefs.join(',')}`)
-}
-
-for (const file of diskRefs) {
-  const txt = fs.readFileSync(path.join(REFS_DIR, file), 'utf-8')
-  const lines = txt.split(/\r?\n/).filter((_, i, arr) => i < arr.length - 1 || txt.split(/\r?\n/).at(-1) !== '')
-  if (lines.length < 15 || lines.length > 35) {
-    errors.push(`${file} 行数越界: ${lines.length} (要求 15~35)`)
-  }
-  const slots = [...txt.matchAll(/^## (\d+)\.\s+\S+/gm)].map((m) => m[1])
-  if (JSON.stringify(slots) !== JSON.stringify(['1', '2', '3', '4'])) {
-    errors.push(`${file} 缺失标准四槽标题: ${slots.join(',')}`)
-  }
+if (diskRefs.length > 0 || linkedRefs.length > 0) {
+  errors.push(`references/ 已裁撤归位，不应残留表征文件或链接: disk=${diskRefs.join(',')} vs linked=${linkedRefs.join(',')}`)
 }
 
 for (const reqFile of [
@@ -148,5 +136,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `[PASS] study=${studyLines.length}行/${studyChars}字 | workflows=${diskWfs.length}份双向对齐 | refs=${diskRefs.length}份四槽双向对齐 | study-feedback=${fbLines.length}行 | 隐私零残留`,
+  `[PASS] study=${studyLines.length}行/${studyChars}字 | workflows=${diskWfs.length}份双向对齐 | study-feedback=${fbLines.length}行 | 隐私零残留`,
 )
